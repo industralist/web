@@ -5,7 +5,7 @@ export default function AboutPage() {
       <section className="py-20 container mx-auto px-4">
         <h1 className="text-4xl md:text-5xl font-extrabold mb-6">
           About{" "}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-500">
+          <span className="text-transparent bg-clip-text bg-linear-to-r from-orange-500 to-red-500">
             Piflepath
           </span>
         </h1>
@@ -176,14 +176,14 @@ export default function AboutPage() {
           </div>
 
           {/* Contact CTA */}
-          <div className="bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/20 rounded-xl p-8 text-center">
+          <div className="bg-linear-to-r from-orange-500/10 to-red-500/10 border border-orange-500/20 rounded-xl p-8 text-center">
             <h2 className="text-2xl font-bold mb-3">Get Started Today</h2>
             <p className="text-gray-400 mb-6 max-w-xl mx-auto">
               Join thousands of traders and developers who trust Piflepath for
               their Solana analytics needs.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="bg-gradient-to-r from-orange-500 to-red-500 text-white font-semibold px-6 py-3 rounded-lg hover:opacity-90 transition">
+              <button className="bg-linear-to-r from-orange-500 to-red-500 text-white font-semibold px-6 py-3 rounded-lg hover:opacity-90 transition">
                 Start Free Trial
               </button>
               <button className="bg-white/5 border border-white/10 text-white font-semibold px-6 py-3 rounded-lg hover:bg-white/10 transition">

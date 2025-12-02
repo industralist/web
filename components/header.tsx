@@ -48,6 +48,11 @@ export function Header() {
             Features
           </Link>
           <Link
+            href="/pricing"
+            className="text-gray-400 hover:text-white transition text-sm font-medium">
+            Pricing
+          </Link>
+          <Link
             href="/docs"
             className="text-gray-400 hover:text-white transition text-sm font-medium">
             Documentation

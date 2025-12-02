@@ -8,7 +8,7 @@ export default function FeaturesPage() {
       <section className="py-20 container mx-auto px-4">
         <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-6">
           Powerful Features for Tracking{" "}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-500">
+          <span className="text-transparent bg-clip-text bg-linear-to-r from-orange-500 to-red-500">
             Solana
           </span>
         </h1>
@@ -19,8 +19,8 @@ export default function FeaturesPage() {
 
         <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           {/* Feature 1 */}
-          <div className="p-6 rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] transition-all">
-            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center mb-4">
+          <div className="p-6 rounded-2xl border border-white/10 bg-white/2 hover:bg-white/4 transition-all">
+            <div className="w-12 h-12 rounded-lg bg-linear-to-br from-orange-500 to-red-500 flex items-center justify-center mb-4">
               <BarChart3 className="text-white" />
             </div>
             <h3 className="font-semibold text-xl mb-2">
@@ -33,8 +33,8 @@ export default function FeaturesPage() {
           </div>
 
           {/* Feature 2 */}
-          <div className="p-6 rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] transition-all">
-            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center mb-4">
+          <div className="p-6 rounded-2xl border border-white/10 bg-white/2 hover:bg-white/4 transition-all">
+            <div className="w-12 h-12 rounded-lg bg-linear-to-br from-orange-500 to-red-500 flex items-center justify-center mb-4">
               <Zap className="text-white" />
             </div>
             <h3 className="font-semibold text-xl mb-2">
@@ -47,8 +47,8 @@ export default function FeaturesPage() {
           </div>
 
           {/* Feature 3 */}
-          <div className="p-6 rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] transition-all">
-            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center mb-4">
+          <div className="p-6 rounded-2xl border border-white/10 bg-white/2 hover:bg-white/4 transition-all">
+            <div className="w-12 h-12 rounded-lg bg-linear-to-br from-orange-500 to-red-500 flex items-center justify-center mb-4">
               <Shield className="text-white" />
             </div>
             <h3 className="font-semibold text-xl mb-2">Secure & Reliable</h3>
@@ -59,7 +59,7 @@ export default function FeaturesPage() {
           </div>
 
           {/* Feature 4 */}
-          <div className="p-6 rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] transition-all">
+          <div className="p-6 rounded-2xl border border-white/10 bg-white/2 hover:bg-white/4 transition-all">
             <div className="w-12 h-12 rounded-lg bg-linear-to-br from-orange-500 to-red-500 flex items-center justify-center mb-4">
               <LineChart className="text-white" />
             </div>

@@ -6,7 +6,7 @@ export default function DocsPage() {
       <section className="py-20 container mx-auto px-4">
         <h1 className="text-4xl md:text-5xl font-extrabold mb-6">
           Piflepath{" "}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-500">
+          <span className="text-transparent bg-clip-text bg-linear-to-r from-orange-500 to-red-500">
             Documentation
           </span>
         </h1>
