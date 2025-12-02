@@ -68,7 +68,7 @@ export default function PricingPage() {
       description: "3,000 daily requests, Solana network access",
       features: [
         "3,000 API requests per day",
-        "Solana network access",
+        "Blockchain network access",
         "Priority support",
         "Advanced analytics",
       ],
@@ -87,7 +87,7 @@ export default function PricingPage() {
         "Pro plan features included",
         "Crypto transaction tracing",
         "Priority support",
-        "Full Solana network access",
+        "Full Blockchain network access",
       ],
       buttonText: connected ? "Subscribe with SOL" : "Connect Wallet",
       onClick: () => handleSubscribe("Pro+"),
