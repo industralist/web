@@ -65,7 +65,7 @@ export default function PricingPage() {
       title: "Pro",
       price: "300 USDT",
       period: "/month",
-      description: "3,000 daily requests, Solana network access",
+      description: "3,000 daily requests",
       features: [
         "3,000 API requests per day",
         "Blockchain network access",
@@ -106,7 +106,7 @@ export default function PricingPage() {
           </h1>
           <p className="text-gray-400 text-lg max-w-2xl mx-auto">
             Flexible plans designed for analysts, investigators, and security
-            teams. Powered by Solana.
+            teams.
           </p>
         </div>
 

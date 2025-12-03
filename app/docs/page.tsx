@@ -11,7 +11,7 @@ export default function DocsPage() {
           </span>
         </h1>
         <p className="text-gray-400 text-lg max-w-2xl">
-          Learn how to integrate, use, and optimize Piflepath for your Solana
+          Learn how to integrate, use, and optimize Piflepath for your Blockchain
           analytics workflows.
         </p>
 
@@ -20,7 +20,7 @@ export default function DocsPage() {
           <div>
             <h2 className="text-2xl font-bold mb-3">1. Getting Started</h2>
             <p className="text-gray-400 leading-relaxed">
-              Piflepath allows developers and traders to monitor Solana tokens,
+              Piflepath allows developers and traders to monitor tokens,
               view analytics, and receive alerts. This guide will walk you
               through setup and usage.
             </p>

@@ -10,7 +10,7 @@ export default function AboutPage() {
           </span>
         </h1>
         <p className="text-gray-400 text-lg max-w-2xl">
-          Empowering Solana traders and developers with real-time analytics,
+          Empowering traders and developers with real-time analytics,
           intelligent alerts, and comprehensive token tracking.
         </p>
 
@@ -20,7 +20,7 @@ export default function AboutPage() {
             <h2 className="text-2xl font-bold mb-3">Our Mission</h2>
             <p className="text-gray-400 leading-relaxed">
               Piflepath is built to democratize access to professional-grade
-              Solana analytics. We believe that every trader and developer
+              Blockchain analytics. We believe that every trader and developer
               should have the tools to make informed decisions in the fast-paced
               world of cryptocurrency. Our platform bridges the gap between
               complex blockchain data and actionable insights.
@@ -31,8 +31,7 @@ export default function AboutPage() {
           <div>
             <h2 className="text-2xl font-bold mb-3">What We Do</h2>
             <p className="text-gray-400 leading-relaxed mb-4">
-              Piflepath provides a comprehensive suite of tools designed
-              specifically for the Solana ecosystem:
+              Piflepath provides a comprehensive suite of tools:
             </p>
             <div className="bg-white/5 border border-white/10 rounded-xl p-6 space-y-4">
               <div>
@@ -41,7 +40,7 @@ export default function AboutPage() {
                 </h3>
                 <p className="text-gray-400 text-sm">
                   Monitor price movements, volume changes, and market metrics
-                  across thousands of Solana tokens with millisecond precision.
+                  across thousands of tokens with millisecond precision.
                 </p>
               </div>
               <div>
@@ -128,7 +127,7 @@ export default function AboutPage() {
           <div>
             <h2 className="text-2xl font-bold mb-3">Who Uses Piflepath</h2>
             <p className="text-gray-400 leading-relaxed mb-4">
-              Piflepath serves a diverse community of Solana enthusiasts:
+              Piflepath serves a diverse community of Blockchain enthusiasts:
             </p>
             <ul className="space-y-3 text-gray-400">
               <li className="flex items-start">
@@ -142,7 +141,7 @@ export default function AboutPage() {
                 <span className="text-orange-500 mr-3 mt-1">▸</span>
                 <span>
                   <strong className="text-white">Developers</strong> building
-                  Solana applications and need reliable data feeds
+                   applications and need reliable data feeds
                 </span>
               </li>
               <li className="flex items-start">
@@ -180,7 +179,7 @@ export default function AboutPage() {
             <h2 className="text-2xl font-bold mb-3">Get Started Today</h2>
             <p className="text-gray-400 mb-6 max-w-xl mx-auto">
               Join thousands of traders and developers who trust Piflepath for
-              their Solana analytics needs.
+              their analytics needs.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button className="bg-linear-to-r from-orange-500 to-red-500 text-white font-semibold px-6 py-3 rounded-lg hover:opacity-90 transition">

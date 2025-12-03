@@ -6,6 +6,7 @@ import "@solana/wallet-adapter-react-ui/styles.css";
 import "./globals.css";
 import { Header } from "@/components/header";
 import WalletContextProvider from "@/components/WalletProvider";
+import { Footer } from "@/components/ui/footer";
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
@@ -29,6 +30,7 @@ export default function RootLayout({
           <Header />
           {children}
           <Analytics />
+          <Footer/>
         </WalletContextProvider>
       </body>
     </html>

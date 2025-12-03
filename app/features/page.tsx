@@ -9,7 +9,7 @@ export default function FeaturesPage() {
         <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-6">
           Powerful Features for Tracking{" "}
           <span className="text-transparent bg-clip-text bg-linear-to-r from-orange-500 to-red-500">
-            Solana
+          Blockchain
           </span>
         </h1>
         <p className="text-gray-400 text-lg max-w-2xl">

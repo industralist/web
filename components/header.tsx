@@ -62,6 +62,11 @@ export function Header() {
             className="text-gray-400 hover:text-white transition text-sm font-medium">
             About
           </Link>
+          <Link
+            href="/dashboard"
+            className="text-gray-400 hover:text-white transition text-sm font-medium">
+            Dashboard
+          </Link>
         </nav>
 
         {/* CTA Buttons */}
