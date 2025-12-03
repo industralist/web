@@ -72,7 +72,7 @@ export default function PricingPage() {
         "Priority support",
         "Advanced analytics",
       ],
-      buttonText: connected ? "Subscribe with SOL" : "Connect Wallet",
+      buttonText: connected ? "Subscribe Pro" : "Connect Wallet",
       onClick: () => handleSubscribe("Pro"),
       popular: true,
     },
@@ -89,7 +89,7 @@ export default function PricingPage() {
         "Priority support",
         "Full Blockchain network access",
       ],
-      buttonText: connected ? "Subscribe with SOL" : "Connect Wallet",
+      buttonText: connected ? "Subscribe Pro+" : "Connect Wallet",
       onClick: () => handleSubscribe("Pro+"),
     },
   ];
