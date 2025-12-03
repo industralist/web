@@ -16,7 +16,7 @@ export function usePlanUpgrade() {
   const [successPlan, setSuccessPlan] = useState<string | null>(null);
 
   const connection = new Connection(
-    `${process.env.SOLANA_SERVER_RPC}`,
+    `https://mainnet.helius-rpc.com/?api-key=${process.env.NEXT_PUBLIC_HELIUS_API_KEY}`,
     "confirmed"
   );
 
@@ -35,7 +35,7 @@ export function usePlanUpgrade() {
         setLoading(true);
         setSuccessPlan(null);
 
-        const price = plan === "Pro" ? 0.1 : 0.2; 
+        const price = plan === "Pro" ? 0.1 : 0.2;
         const lamports = price * 1_000_000_000;
 
         const tx = new Transaction().add(
