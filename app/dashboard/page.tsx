@@ -1,13 +1,15 @@
 "use client";
 
 import { useWallet } from "@solana/wallet-adapter-react";
+import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { useEffect, useState } from "react";
 import { Wallet } from "lucide-react";
 import ApiKeyManager from "@/components/apiKeyManager";
 import SubscriptionCard from "@/components/subscriptionCard";
 
 export default function DashboardPage() {
-  const { connected, connect } = useWallet();
+  const wallet = useWallet();
+  const walletModal = useWalletModal();
   const [currentPlan, setCurrentPlan] = useState("Free");
 
   useEffect(() => {
@@ -15,7 +17,15 @@ export default function DashboardPage() {
     setCurrentPlan(plan);
   }, []);
 
-  if (!connected) {
+  const handleWalletConnect = () => {
+    if (!wallet.connected) {
+      walletModal.setVisible(true); 
+    } else {
+      wallet.disconnect();
+    }
+  };
+
+  if (!wallet.connected) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center text-white">
         <div className="text-center max-w-md p-10 border border-white/10 bg-white/3 rounded-2xl">
@@ -27,7 +37,7 @@ export default function DashboardPage() {
           </p>
 
           <button
-            onClick={() => connect()}
+            onClick={handleWalletConnect}
             className="w-full py-3 rounded-lg cursor-pointer font-medium bg-linear-to-r from-orange-500 to-red-500 hover:opacity-90">
             Connect Wallet
           </button>
@@ -46,7 +56,6 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 max-w-6xl mx-auto">
           <SubscriptionCard currentPlan={currentPlan} />
-
           <div>
             <ApiKeyManager />
           </div>
