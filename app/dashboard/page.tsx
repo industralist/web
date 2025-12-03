@@ -13,13 +13,18 @@ export default function DashboardPage() {
   const [currentPlan, setCurrentPlan] = useState("Free");
 
   useEffect(() => {
-    const plan = localStorage.getItem("user_plan") || "Free";
-    setCurrentPlan(plan);
+    const listener = () => {
+      const plan = localStorage.getItem("user_plan") || "Free";
+      setCurrentPlan(plan);
+    };
+
+    window.addEventListener("storage", listener);
+    return () => window.removeEventListener("storage", listener);
   }, []);
 
   const handleWalletConnect = () => {
     if (!wallet.connected) {
-      walletModal.setVisible(true); 
+      walletModal.setVisible(true);
     } else {
       wallet.disconnect();
     }

@@ -1,58 +1,14 @@
 "use client";
 
-import { useWallet } from "@solana/wallet-adapter-react";
-import {
-  Connection,
-  PublicKey,
-  clusterApiUrl,
-  Transaction,
-  SystemProgram,
-} from "@solana/web3.js";
 import { Check } from "lucide-react";
+import { usePlanUpgrade } from "@/hooks/use-plan-upgrade";
 
 export default function SubscriptionCard({
   currentPlan,
 }: {
   currentPlan: string;
 }) {
-  const { connected, publicKey, sendTransaction, connect } = useWallet();
-
-  const merchantAddress = new PublicKey(
-    "BNtr6PvLY2zVBCH9gyEGwNMBBeiRXaK6YfWfWW5yhgxQ"
-  );
-  const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
-
-  const upgradePlan = async (plan: "Pro" | "Pro+") => {
-    try {
-      if (!connected) {
-        await connect();
-        return;
-      }
-
-      const price = plan === "Pro" ? 0.1 : 0.2;
-      const lamports = price * 1_000_000_000;
-
-      const tx = new Transaction().add(
-        SystemProgram.transfer({
-          fromPubkey: publicKey!,
-          toPubkey: merchantAddress,
-          lamports,
-        })
-      );
-
-      const signature = await sendTransaction(tx, connection);
-      await connection.confirmTransaction(signature, "confirmed");
-
-      alert(`Payment successful! Signature: ${signature}`);
-      console.log("tx:", signature);
-
-      localStorage.setItem("user_plan", plan);
-      //   window.location.reload();
-    } catch (e) {
-      console.error(e);
-      alert("Payment failed.");
-    }
-  };
+  const { upgradePlan, loading, successPlan, connected } = usePlanUpgrade();
 
   return (
     <div className="p-8 rounded-2xl border border-white/10 bg-white/3 hover:bg-white/5 transition-all flex flex-col">
@@ -60,7 +16,10 @@ export default function SubscriptionCard({
 
       <p className="text-gray-400 text-sm mb-8">
         You are currently subscribed to the{" "}
-        <span className="text-white font-semibold">{currentPlan}</span> plan.
+        <span className="text-white font-semibold">
+          {successPlan ?? currentPlan}
+        </span>{" "}
+        plan.
       </p>
 
       <h3 className="text-xl font-bold text-white mb-4">Upgrade Plan</h3>
@@ -84,14 +43,14 @@ export default function SubscriptionCard({
           </ul>
 
           <button
-            disabled={!connected}
+            disabled={!connected || loading}
             onClick={() => upgradePlan("Pro")}
             className={`w-full py-3 px-6 rounded-lg font-medium transition-all ${
               connected
                 ? "bg-linear-to-r from-orange-500 to-red-500 text-white hover:opacity-90 cursor-pointer"
                 : "bg-gray-800 text-gray-500 cursor-not-allowed"
             }`}>
-            Upgrade to Pro
+            {loading ? "Processing..." : "Upgrade to Pro"}
           </button>
         </div>
 
@@ -119,14 +78,14 @@ export default function SubscriptionCard({
           </ul>
 
           <button
-            disabled={!connected}
+            disabled={!connected || loading}
             onClick={() => upgradePlan("Pro+")}
             className={`w-full py-3 px-6 rounded-lg font-medium transition-all ${
               connected
                 ? "bg-linear-to-r from-orange-500 to-red-500 text-white hover:opacity-90 cursor-pointer"
                 : "bg-gray-800 text-gray-500 cursor-not-allowed"
             }`}>
-            Upgrade to Pro+
+            {loading ? "Processing..." : "Upgrade to Pro+"}
           </button>
         </div>
       </div>
