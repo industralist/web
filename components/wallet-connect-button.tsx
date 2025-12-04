@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useWallet } from "@solana/wallet-adapter-react"
 import { useWalletModal } from "@solana/wallet-adapter-react-ui"
 import { useAuth } from "@/components/auth-provider"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ChevronDown, Loader2, LogOut, User } from "lucide-react"
 
@@ -16,13 +17,25 @@ export function WalletConnectButton({ variant = "default", size = "md" }: Wallet
   const { connected, publicKey, disconnect, connecting } = useWallet()
   const { setVisible } = useWalletModal()
   const { user, loginWithWallet, logout } = useAuth()
+  const router = useRouter()
   const [showMenu, setShowMenu] = useState(false)
+  const [loggingIn, setLoggingIn] = useState(false)
 
   const handleConnect = async () => {
     if (!connected) {
       setVisible(true)
-    } else if (publicKey) {
-      await loginWithWallet(publicKey.toBase58())
+    } else if (publicKey && !user) {
+      setLoggingIn(true)
+      try {
+        await loginWithWallet(publicKey.toBase58())
+        setTimeout(() => router.push("/dashboard"), 500)
+      } catch (error) {
+        console.error("Login failed:", error)
+      } finally {
+        setLoggingIn(false)
+      }
+    } else if (user) {
+      router.push("/dashboard")
     }
   }
 
@@ -36,7 +49,7 @@ export function WalletConnectButton({ variant = "default", size = "md" }: Wallet
     return (
       <Button
         onClick={handleConnect}
-        disabled={connecting}
+        disabled={connecting || loggingIn}
         className={`${
           variant === "primary"
             ? "bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-700"
@@ -45,10 +58,10 @@ export function WalletConnectButton({ variant = "default", size = "md" }: Wallet
           size === "sm" ? "px-4 py-2 text-sm" : size === "lg" ? "px-8 py-3 text-lg" : "px-6 py-2"
         } font-medium text-white rounded-lg transition-all`}
       >
-        {connecting ? (
+        {connecting || loggingIn ? (
           <>
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Connecting...
+            {connecting ? "Connecting..." : "Logging in..."}
           </>
         ) : (
           "Connect Wallet"
@@ -98,6 +111,19 @@ export function WalletConnectButton({ variant = "default", size = "md" }: Wallet
                   </div>
                 </div>
               </div>
+            )}
+
+            {/* Dashboard Button */}
+            {user && (
+              <Button
+                onClick={() => {
+                  router.push("/dashboard")
+                  setShowMenu(false)
+                }}
+                className="w-full bg-primary hover:bg-primary/90"
+              >
+                Go to Dashboard
+              </Button>
             )}
 
             {/* Disconnect Button */}

@@ -1,26 +1,109 @@
 "use client"
 
-import { motion } from "framer-motion"
-import { ArrowRight, Zap, TrendingUp, Lock, BarChart3 } from "lucide-react"
+import { motion, useScroll, useTransform } from "framer-motion"
+import { ArrowRight, Zap, TrendingUp, Lock, BarChart3, Shield, Gauge, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { RotatingGlobe } from "@/components/rotating-globe"
-import { useCallback } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useAuth } from "@/components/auth-provider"
+import { useWallet } from "@solana/wallet-adapter-react"
+import { useWalletModal } from "@solana/wallet-adapter-react-ui"
+import { useRouter } from "next/navigation"
+import dynamic from "next/dynamic"
+
+const SolChart = dynamic(() => import("@/components/sol-chart").then((mod) => ({ default: mod.SolChart })), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full bg-card-bg rounded-lg animate-pulse flex items-center justify-center text-muted-foreground">
+      Loading chart...
+    </div>
+  ),
+})
 
 export default function LandingPage() {
-  const { loginWithWallet } = useAuth()
+  const { user, loginWithWallet } = useAuth()
+  const { connected, publicKey } = useWallet()
+  const { setVisible } = useWalletModal()
+  const router = useRouter()
+  const { scrollY } = useScroll()
+  const opacity = useTransform(scrollY, [0, 300], [1, 0.5])
+  const [loggingIn, setLoggingIn] = useState(false)
 
-  const handleConnectWallet = useCallback(async () => {
-    const element = document.querySelector("[data-wallet-button]") as HTMLElement
-    element?.click()
-  }, [])
+  useEffect(() => {
+    if (connected && publicKey && !user) {
+      const loginAndRedirect = async () => {
+        try {
+          setLoggingIn(true)
+          await loginWithWallet(publicKey.toBase58())
+          setTimeout(() => router.push("/dashboard"), 500)
+        } catch (error) {
+          console.error("Login failed:", error)
+          setLoggingIn(false)
+        }
+      }
+      loginAndRedirect()
+    }
+  }, [connected, publicKey, user, loginWithWallet, router])
+
+  const handleConnectWallet = useCallback(() => {
+    if (!connected) {
+      setVisible(true)
+    } else if (publicKey && !user) {
+      handleManualLogin()
+    } else if (user) {
+      router.push("/dashboard")
+    }
+  }, [connected, publicKey, user, setVisible, router])
+
+  const handleManualLogin = async () => {
+    if (publicKey) {
+      setLoggingIn(true)
+      try {
+        await loginWithWallet(publicKey.toBase58())
+        setTimeout(() => router.push("/dashboard"), 500)
+      } catch (error) {
+        console.error("Login failed:", error)
+        setLoggingIn(false)
+      }
+    }
+  }
+
+  if (user) {
+    return null
+  }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground overflow-hidden">
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center overflow-hidden pt-20">
-        <RotatingGlobe />
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <motion.div
+            className="absolute top-20 -right-40 w-80 h-80 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent rounded-full blur-3xl"
+            animate={{
+              y: [0, 30, 0],
+              x: [0, 20, 0],
+            }}
+            transition={{
+              duration: 8,
+              repeat: Number.POSITIVE_INFINITY,
+              ease: "easeInOut",
+            }}
+          />
+          <motion.div
+            className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-secondary/20 via-secondary/5 to-transparent rounded-full blur-3xl"
+            animate={{
+              y: [0, -30, 0],
+              x: [0, -20, 0],
+            }}
+            transition={{
+              duration: 10,
+              repeat: Number.POSITIVE_INFINITY,
+              ease: "easeInOut",
+              delay: 1,
+            }}
+          />
+        </div>
 
         <div className="container mx-auto px-4 relative z-10">
           <div className="grid md:grid-cols-2 gap-12 items-center">
@@ -28,97 +111,186 @@ export default function LandingPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="space-y-6"
+              transition={{ duration: 0.8 }}
+              className="space-y-8"
             >
-              <div className="space-y-4">
-                <h1 className="text-5xl md:text-6xl font-bold text-balance leading-tight">
-                  Track Tokens in{" "}
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-orange-500 to-red-500">
-                    Real-Time
+              <div className="space-y-6">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2, duration: 0.6 }}
+                  className="inline-block"
+                >
+                  <span className="text-xs bg-gradient-to-r from-primary to-orange-600 text-white px-4 py-2 rounded-full font-medium">
+                    ✨ The Complete Blockchain Intelligence Platform
+                  </span>
+                </motion.div>
+
+                <h1 className="text-6xl md:text-7xl font-bold text-balance leading-tight">
+                  Track Tokens, Monitor{" "}
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-orange-500 to-red-500 animate-pulse">
+                    Wallets, Stay Ahead
                   </span>
                 </h1>
-                <p className="text-xl text-muted-foreground text-balance">
-                  Monitor emerging tokens, track wallet movements, and get instant notifications. The complete
-                  blockchain intelligence platform for traders and investors.
+
+                <p className="text-xl md:text-2xl text-muted-foreground text-balance leading-relaxed font-light">
+                  Whether you're a trader seeking emerging opportunities, an investor analyzing market trends, an
+                  investigator tracking suspicious activity, or a compliance officer monitoring blockchain transactions
+                  — Pifflepath gives you real-time intelligence and actionable insights.
                 </p>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <Button
-                  size="lg"
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground group"
-                  onClick={handleConnectWallet}
-                >
-                  Connect Wallet <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </Button>
-                <Button size="lg" variant="outline" asChild>
-                  <Link href="/pricing">View Pricing</Link>
-                </Button>
+              <div className="flex flex-col sm:flex-row gap-4 pt-6">
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button
+                    size="lg"
+                    className="bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-700 text-white group px-8 py-6 text-lg rounded-lg"
+                    onClick={handleConnectWallet}
+                    disabled={loggingIn}
+                  >
+                    {loggingIn ? "Logging in..." : "Connect Wallet & Get Started"}{" "}
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button size="lg" variant="outline" asChild className="px-8 py-6 text-lg bg-transparent">
+                    <Link href="/pricing">View Pricing</Link>
+                  </Button>
+                </motion.div>
               </div>
 
-              <div className="flex gap-8 pt-4 text-sm">
-                <div>
-                  <p className="font-semibold text-foreground">500+</p>
-                  <p className="text-muted-foreground">Active Users</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-foreground">10M+</p>
-                  <p className="text-muted-foreground">Requests Daily</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-foreground">99.9%</p>
-                  <p className="text-muted-foreground">Uptime SLA</p>
-                </div>
-              </div>
+              {/* Stats */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                className="flex gap-8 pt-4 border-t border-card-border pt-8"
+              >
+                {[
+                  { value: "500+", label: "Active Users" },
+                  { value: "10M+", label: "Daily Requests" },
+                  { value: "99.9%", label: "Uptime SLA" },
+                ].map((stat, i) => (
+                  <motion.div key={i} whileInView={{ scale: 1.05 }} viewport={{ once: true }}>
+                    <p className="font-bold text-lg text-primary">{stat.value}</p>
+                    <p className="text-muted-foreground text-xs mt-1">{stat.label}</p>
+                  </motion.div>
+                ))}
+              </motion.div>
             </motion.div>
 
-            {/* Right Column - Visual */}
+            {/* Right Column - Live Chart */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
+              initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="relative h-96 hidden md:block"
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="relative h-96 md:h-full md:min-h-screen flex items-center justify-center hidden md:flex"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-secondary/20 rounded-2xl blur-3xl"></div>
-              <div className="relative h-full rounded-2xl border border-card-border bg-card-bg p-6 flex flex-col items-center justify-center glass">
-                <TrendingUp className="w-20 h-20 text-primary/60 mb-4" />
-                <p className="text-center text-muted-foreground text-sm">Real-time token tracking dashboard</p>
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-transparent to-secondary/20 rounded-3xl blur-3xl"></div>
+              <div className="relative w-full h-full max-h-[500px] rounded-2xl border border-card-border bg-card-bg p-6 glass overflow-hidden">
+                <div className="absolute top-4 left-6 z-10">
+                  <p className="text-sm text-muted-foreground">Live SOL/USD</p>
+                  <p className="text-2xl font-bold text-primary mt-1">$150.25</p>
+                </div>
+                <SolChart />
               </div>
             </motion.div>
           </div>
         </div>
       </section>
 
+      {/* Use Cases Section */}
       <section className="py-20 md:py-32 bg-gradient-to-b from-card-bg/50 to-background border-y border-card-border">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-4xl md:text-5xl font-bold mb-4">Built for Everyone</h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              From traders to compliance officers, Pifflepath provides the tools you need
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              {
+                icon: TrendingUp,
+                title: "Traders & Investors",
+                desc: "Discover emerging tokens, track whale movements, and identify trading opportunities in real-time.",
+              },
+              {
+                icon: Shield,
+                title: "Compliance Officers",
+                desc: "Monitor transactions, detect suspicious patterns, and generate audit reports for regulatory requirements.",
+              },
+              {
+                icon: AlertCircle,
+                title: "Investigators",
+                desc: "Trace fund flows, identify wallets of interest, and build comprehensive transaction histories.",
+              },
+              {
+                icon: Gauge,
+                title: "Risk Analysts",
+                desc: "Analyze wallet behavior, assess counterparty risk, and monitor portfolio exposure in real-time.",
+              },
+            ].map((useCase, i) => {
+              const Icon = useCase.icon
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                  className="group p-6 rounded-lg border border-card-border bg-card hover:border-primary/50 transition-all hover:shadow-lg hover:shadow-primary/10 card-brown-hover"
+                >
+                  <Icon className="w-8 h-8 text-primary mb-4 group-hover:scale-110 transition-transform" />
+                  <h3 className="font-semibold text-lg mb-2">{useCase.title}</h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed">{useCase.desc}</p>
+                </motion.div>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-20 md:py-32 bg-gradient-to-b from-background to-card-bg/50">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
             <h2 className="text-4xl md:text-5xl font-bold mb-4">Powerful Features</h2>
             <p className="text-xl text-muted-foreground">Everything you need for blockchain intelligence</p>
-          </div>
+          </motion.div>
 
-          {/* Four Main Features with Expanded Details */}
-          <div className="grid md:grid-cols-2 gap-8 mb-16">
+          <div className="grid md:grid-cols-2 gap-8 mb-12">
             {[
               {
                 icon: BarChart3,
                 title: "Real-Time Token Tracking",
-                desc: "Monitor token performance with up-to-the-second updates powered by fast Solana RPC connections. Track price movements, volume changes, and market cap fluctuations across multiple tokens simultaneously.",
+                desc: "Monitor token performance with up-to-the-second updates powered by fast Solana RPC connections. Track price movements, volume changes, and market cap fluctuations across multiple tokens simultaneously with zero latency.",
               },
               {
                 icon: Zap,
                 title: "Instant Notifications",
-                desc: "Get alerts when price changes cross your thresholds or major movements are detected. Never miss important market events with our intelligent notification system that learns your preferences.",
+                desc: "Get alerts when price changes cross your thresholds or major movements are detected. Never miss important market events with our intelligent notification system that learns your preferences and adapts to your trading style.",
               },
               {
                 icon: Lock,
                 title: "Secure & Reliable",
-                desc: "Built with redundancy, fast endpoints, and industry-level security practices for trusted analytics. Your data is encrypted and backed up with 99.9% uptime SLA guaranteed.",
+                desc: "Built with enterprise-grade security, redundancy, and fast endpoints for trusted analytics. Your data is encrypted, backed up, and delivered with 99.9% uptime SLA guaranteed across all API endpoints.",
               },
               {
                 icon: TrendingUp,
                 title: "Historical Insights",
-                desc: "Visualize token behavior over time with clean charts and trend indicators. Access detailed historical data to identify patterns and make informed investment decisions.",
+                desc: "Visualize token behavior over time with clean charts and trend indicators. Access detailed historical data to identify patterns, validate strategies, and make informed decisions backed by comprehensive analytics.",
               },
             ].map((feature, i) => {
               const Icon = feature.icon
@@ -140,35 +312,44 @@ export default function LandingPage() {
           </div>
 
           {/* Additional Feature Highlights */}
-          <div className="bg-card border border-card-border rounded-lg p-12">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="bg-gradient-to-r from-primary/10 via-card-bg to-secondary/10 border border-card-border rounded-lg p-12"
+          >
             <h3 className="text-2xl font-bold mb-8 text-center">Why Choose Pifflepath?</h3>
             <div className="grid md:grid-cols-3 gap-12">
-              <div className="text-center">
+              <motion.div whileHover={{ y: -5 }} className="text-center">
                 <div className="text-4xl font-bold text-primary mb-2">10M+</div>
                 <p className="text-muted-foreground">API Requests Daily</p>
-              </div>
-              <div className="text-center">
+              </motion.div>
+              <motion.div whileHover={{ y: -5 }} className="text-center">
                 <div className="text-4xl font-bold text-primary mb-2">500+</div>
-                <p className="text-muted-foreground">Active Traders Using Pifflepath</p>
-              </div>
-              <div className="text-center">
+                <p className="text-muted-foreground">Active Users Worldwide</p>
+              </motion.div>
+              <motion.div whileHover={{ y: -5 }} className="text-center">
                 <div className="text-4xl font-bold text-primary mb-2">99.9%</div>
-                <p className="text-muted-foreground">Platform Uptime Guarantee</p>
-              </div>
+                <p className="text-muted-foreground">Platform Uptime SLA</p>
+              </motion.div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section className="py-20 md:py-32">
+      {/* Pricing Preview Section */}
+      <section className="py-20 md:py-32 bg-card-bg/50">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
             <h2 className="text-4xl md:text-5xl font-bold mb-4">Simple, Transparent Pricing</h2>
             <p className="text-xl text-muted-foreground mb-8">Start free, scale as you grow</p>
-          </div>
+          </motion.div>
 
-          {/* Quick Pricing Preview */}
           <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-8">
             {[
               { name: "Free", price: "$0", requests: "100 requests/day", color: "from-gray-500" },
@@ -181,38 +362,59 @@ export default function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
+                whileHover={{ y: -5 }}
                 className={`p-6 rounded-lg border transition-all ${
                   plan.popular
-                    ? "border-primary/50 bg-gradient-to-b from-primary/10 to-transparent scale-105"
+                    ? "border-primary/50 bg-gradient-to-b from-primary/10 to-transparent scale-105 shadow-lg shadow-primary/20"
                     : "border-card-border bg-card"
                 }`}
               >
                 {plan.popular && (
-                  <div className="mb-3">
+                  <motion.div initial={{ opacity: 0, y: -10 }} whileInView={{ opacity: 1, y: 0 }} className="mb-3">
                     <span className="text-xs bg-gradient-to-r from-primary to-orange-600 text-white px-3 py-1 rounded-full font-medium">
                       Most Popular
                     </span>
-                  </div>
+                  </motion.div>
                 )}
                 <h3 className="font-semibold text-lg mb-2">{plan.name}</h3>
                 <div className="text-3xl font-bold mb-2">{plan.price}</div>
                 <p className="text-sm text-muted-foreground mb-4">/month</p>
-                <p className="text-sm font-medium">{plan.requests}</p>
+                <p className="text-sm font-medium text-primary">{plan.requests}</p>
               </motion.div>
             ))}
           </div>
 
-          <div className="text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center"
+          >
             <Button size="lg" asChild>
-              <Link href="/pricing">View Full Pricing & Details</Link>
+              <Link href="/pricing" className="group">
+                View Full Pricing & Details{" "}
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
             </Button>
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 md:py-32 bg-gradient-to-r from-primary/10 via-card-bg to-secondary/10 border-y border-card-border">
-        <div className="container mx-auto px-4 text-center">
+      <section className="py-20 md:py-32 bg-gradient-to-r from-primary/10 via-card-bg to-secondary/10 border-y border-card-border relative overflow-hidden">
+        <motion.div
+          className="absolute inset-0 opacity-30"
+          animate={{
+            backgroundPosition: ["0% 0%", "100% 100%"],
+          }}
+          transition={{
+            duration: 15,
+            repeat: Number.POSITIVE_INFINITY,
+            ease: "linear",
+          }}
+        />
+
+        <div className="container mx-auto px-4 relative z-10 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -222,15 +424,19 @@ export default function LandingPage() {
           >
             <h2 className="text-4xl md:text-5xl font-bold">Ready to Get Started?</h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Connect your wallet and start tracking tokens in real-time today.
+              Join hundreds of traders, investors, analysts, and compliance officers using Pifflepath today.
             </p>
-            <Button
-              size="lg"
-              className="bg-primary hover:bg-primary/90 text-primary-foreground group"
-              onClick={handleConnectWallet}
-            >
-              Connect Wallet Now <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </Button>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                size="lg"
+                className="bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-700 text-white group px-8 py-6 text-lg"
+                onClick={handleConnectWallet}
+                disabled={loggingIn}
+              >
+                {loggingIn ? "Logging in..." : "Connect Wallet Now"}{" "}
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </motion.div>
           </motion.div>
         </div>
       </section>
