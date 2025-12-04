@@ -5,7 +5,7 @@ export default function AboutPage() {
       <section className="py-20 container mx-auto px-4">
         <h1 className="text-4xl md:text-5xl font-extrabold mb-6">
           About{" "}
-          <span className="text-transparent bg-clip-text bg-linear-to-r from-orange-500 to-red-500">Piflepath</span>
+          <span className="text-transparent bg-clip-text bg-linear-to-r from-orange-500 to-red-500">Pifflepath</span>
         </h1>
         <p className="text-gray-400 text-lg max-w-2xl">
           Empowering traders and developers with real-time analytics, intelligent alerts, and comprehensive token
@@ -17,8 +17,8 @@ export default function AboutPage() {
           <div>
             <h2 className="text-2xl font-bold mb-3">Our Mission</h2>
             <p className="text-gray-400 leading-relaxed">
-              Piflepath is built to democratize access to professional-grade Blockchain analytics. We believe that every
-              trader and developer should have the tools to make informed decisions in the fast-paced world of
+              Pifflepath is built to democratize access to professional-grade Blockchain analytics. We believe that
+              every trader and developer should have the tools to make informed decisions in the fast-paced world of
               cryptocurrency. Our platform bridges the gap between complex blockchain data and actionable insights.
             </p>
           </div>
@@ -26,7 +26,7 @@ export default function AboutPage() {
           {/* What We Do */}
           <div>
             <h2 className="text-2xl font-bold mb-3">What We Do</h2>
-            <p className="text-gray-400 leading-relaxed mb-4">Piflepath provides a comprehensive suite of tools:</p>
+            <p className="text-gray-400 leading-relaxed mb-4">Pifflepath provides a comprehensive suite of tools:</p>
             <div className="bg-white/5 border border-white/10 rounded-xl p-6 space-y-4">
               <div>
                 <h3 className="text-lg font-semibold text-orange-500 mb-2">Real-Time Token Tracking</h3>
@@ -52,7 +52,7 @@ export default function AboutPage() {
               <div>
                 <h3 className="text-lg font-semibold text-orange-500 mb-2">Developer SDK</h3>
                 <p className="text-gray-400 text-sm">
-                  Integrate Piflepath's powerful analytics into your own applications with our easy-to-use SDK and
+                  Integrate Pifflepath's powerful analytics into your own applications with our easy-to-use SDK and
                   comprehensive API.
                 </p>
               </div>
@@ -103,9 +103,9 @@ export default function AboutPage() {
 
           {/* Who It's For */}
           <div>
-            <h2 className="text-2xl font-bold mb-3">Who Uses Piflepath</h2>
+            <h2 className="text-2xl font-bold mb-3">Who Uses Pifflepath</h2>
             <p className="text-gray-400 leading-relaxed mb-4">
-              Piflepath serves a diverse community of blockchain enthusiasts:
+              Pifflepath serves a diverse community of blockchain enthusiasts:
             </p>
             <ul className="space-y-3 text-gray-400">
               <li className="flex items-start">
@@ -142,7 +142,7 @@ export default function AboutPage() {
             <h2 className="text-2xl font-bold mb-3">Our Vision</h2>
             <p className="text-gray-400 leading-relaxed">
               We envision a future where cryptocurrency trading and development are transparent, accessible, and
-              data-driven. Piflepath is committed to continuous innovation, expanding our analytics capabilities, and
+              data-driven. Pifflepath is committed to continuous innovation, expanding our analytics capabilities, and
               supporting the growth of blockchain ecosystems. Join us as we build the next generation of blockchain
               analytics tools.
             </p>
@@ -152,7 +152,7 @@ export default function AboutPage() {
           <div className="bg-linear-to-r from-orange-500/10 to-red-500/10 border border-orange-500/20 rounded-xl p-8 text-center">
             <h2 className="text-2xl font-bold mb-3">Get Started Today</h2>
             <p className="text-gray-400 mb-6 max-w-xl mx-auto">
-              Join thousands of traders and developers who trust Piflepath for their analytics needs.
+              Join thousands of traders and developers who trust Pifflepath for their analytics needs.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button className="bg-linear-to-r from-orange-500 to-red-500 text-white font-semibold px-6 py-3 rounded-lg hover:opacity-90 transition">

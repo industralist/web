@@ -38,7 +38,7 @@ export function NetworkOverview() {
     <div className="space-y-4">
       <div className="mb-6">
         <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3">
-          <span className="bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">Piflepath</span>
+          <span className="bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">Pifflepath</span>
           <span className="text-sm md:text-base bg-orange-500 text-black px-3 py-1 rounded-full font-semibold">
             Blockchain Tracker
           </span>

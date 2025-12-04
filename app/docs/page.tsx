@@ -1,18 +1,15 @@
-"use client";
+"use client"
 
 export default function DocsPage() {
   return (
     <div className="min-h-screen bg-black text-white">
       <section className="py-20 container mx-auto px-4">
         <h1 className="text-4xl md:text-5xl font-extrabold mb-6">
-          Piflepath{" "}
-          <span className="text-transparent bg-clip-text bg-linear-to-r from-orange-500 to-red-500">
-            Documentation
-          </span>
+          Pifflepath{" "}
+          <span className="text-transparent bg-clip-text bg-linear-to-r from-orange-500 to-red-500">Documentation</span>
         </h1>
         <p className="text-gray-400 text-lg max-w-2xl">
-          Learn how to integrate, use, and optimize Piflepath for your Blockchain
-          analytics workflows.
+          Learn how to integrate, use, and optimize Pifflepath for your Blockchain analytics workflows.
         </p>
 
         <div className="mt-12 space-y-12">
@@ -20,9 +17,8 @@ export default function DocsPage() {
           <div>
             <h2 className="text-2xl font-bold mb-3">1. Getting Started</h2>
             <p className="text-gray-400 leading-relaxed">
-              Piflepath allows developers and traders to monitor tokens,
-              view analytics, and receive alerts. This guide will walk you
-              through setup and usage.
+              Pifflepath allows developers and traders to monitor tokens, view analytics, and receive alerts. This guide
+              will walk you through setup and usage.
             </p>
           </div>
 
@@ -32,9 +28,7 @@ export default function DocsPage() {
             <p className="text-gray-400 mb-2">Install via NPM:</p>
 
             <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-              <pre className="text-gray-200 text-sm">
-                npm install piflepath-sdk
-              </pre>
+              <pre className="text-gray-200 text-sm">npm install pifflepath-sdk</pre>
             </div>
           </div>
 
@@ -44,7 +38,7 @@ export default function DocsPage() {
 
             <div className="bg-white/5 border border-white/10 rounded-xl p-4">
               <pre className="text-gray-200 text-sm">
-                {`import { trackToken } from "piflepath-sdk";
+                {`import { trackToken } from "pifflepath-sdk";
 
 const data = await trackToken("SOL");
 console.log(data);`}
@@ -52,11 +46,7 @@ console.log(data);`}
             </div>
 
             <p className="text-gray-400 mt-3">
-              Use{" "}
-              <span className="text-orange-500 font-semibold">
-                trackToken()
-              </span>{" "}
-              to fetch real-time token metrics.
+              Use <span className="text-orange-500 font-semibold">trackToken()</span> to fetch real-time token metrics.
             </p>
           </div>
 
@@ -64,12 +54,11 @@ console.log(data);`}
           <div>
             <h2 className="text-2xl font-bold mb-3">4. Alerts</h2>
             <p className="text-gray-400 leading-relaxed">
-              Set alerts to monitor price movements and receive real-time
-              notifications.
+              Set alerts to monitor price movements and receive real-time notifications.
             </p>
           </div>
         </div>
       </section>
     </div>
-  );
+  )
 }

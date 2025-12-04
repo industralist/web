@@ -12,7 +12,7 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Piflepath - Blockchain Infrastructure",
+  title: "Pifflepath - Blockchain Infrastructure",
   description: "The complete stack for internet markets. Low latency reads and optimized transaction delivery.",
   generator: "v0.app",
 }

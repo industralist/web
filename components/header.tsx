@@ -1,28 +1,12 @@
 "use client"
 
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
 import { Menu, X, BarChart3 } from "lucide-react"
 import { useState } from "react"
-import { useWallet } from "@solana/wallet-adapter-react"
-import { useWalletModal } from "@solana/wallet-adapter-react-ui"
+import { WalletConnectButton } from "./wallet-connect-button"
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-
-  const wallet = useWallet()
-  const walletModal = useWalletModal()
-
-  const handleWalletConnect = () => {
-    console.log("connecting...")
-
-    if (!wallet.connected) {
-      walletModal.setVisible(true)
-      console.log("no wallet connected", wallet)
-    } else {
-      wallet.disconnect()
-    }
-  }
 
   return (
     <header className="border-b border-white/5 bg-black/95 backdrop-blur supports-backdrop-filter:bg-black/60 sticky top-0 z-50">
@@ -32,7 +16,7 @@ export function Header() {
           <div className="w-8 h-8 rounded-full bg-linear-to-br from-orange-500 to-red-500 flex items-center justify-center group-hover:shadow-lg group-hover:shadow-orange-500/50 transition-all">
             <BarChart3 className="text-white font-bold text-sm w-5 h-5" />
           </div>
-          <span className="text-white">Piflepath</span>
+          <span className="text-white">Pifflepath</span>
           <span className="text-xs bg-orange-500/20 text-orange-500 px-2 py-1 hidden md:block rounded-full font-medium">
             Blockchain Tracker
           </span>
@@ -58,16 +42,10 @@ export function Header() {
         </nav>
 
         {/* CTA Buttons */}
-        <div className="flex items-center  gap-3">
-          <Button
-            onClick={handleWalletConnect}
-            size="sm"
-            className="bg-linear-to-r cursor-pointer from-orange-500 to-red-500 hidden md:block hover:from-orange-600 hover:to-red-600 text-white font-semibold rounded-full px-6"
-          >
-            {wallet.connected
-              ? `${wallet.publicKey?.toBase58().slice(0, 4)}...${wallet.publicKey?.toBase58().slice(-4)}`
-              : "Connect Wallet"}
-          </Button>
+        <div className="flex items-center gap-3">
+          <div className="hidden md:block">
+            <WalletConnectButton variant="primary" size="sm" />
+          </div>
 
           {/* Mobile Menu Button */}
           <button
@@ -86,6 +64,9 @@ export function Header() {
             <Link href="/features" className="block text-gray-400 hover:text-white transition text-sm font-medium">
               Features
             </Link>
+            <Link href="/pricing" className="block text-gray-400 hover:text-white transition text-sm font-medium">
+              Pricing
+            </Link>
             <Link href="/docs" className="block text-gray-400 hover:text-white transition text-sm font-medium">
               Documentation
             </Link>
@@ -94,15 +75,9 @@ export function Header() {
             </Link>
 
             {/* Mobile CTA */}
-
-            <button
-              onClick={handleWalletConnect}
-              className="w-full cursor-pointer bg-linear-to-r from-orange-500 to-red-500 text-white py-2 rounded-full font-medium"
-            >
-              {wallet.connected
-                ? `${wallet.publicKey?.toBase58().slice(0, 4)}...${wallet.publicKey?.toBase58().slice(-4)}`
-                : "Connect Wallet"}
-            </button>
+            <div className="pt-4">
+              <WalletConnectButton variant="primary" size="md" />
+            </div>
           </nav>
         </div>
       )}
