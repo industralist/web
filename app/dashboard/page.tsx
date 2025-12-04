@@ -1,141 +1,106 @@
 "use client"
 
+import { useAuth } from "@/components/auth-provider"
 import { useWallet } from "@solana/wallet-adapter-react"
-import { useWalletModal } from "@solana/wallet-adapter-react-ui"
-import { useEffect, useState } from "react"
-import { Wallet, Copy, LogOut } from "lucide-react"
-import ApiKeyManager from "@/components/apiKeyManager"
-import SubscriptionCard from "@/components/subscriptionCard"
-import { toast } from "sonner"
+import { Card } from "@/components/ui/card"
+import { DashboardHeader } from "@/components/dashboard-header"
+import { Wallet, TrendingUp, Key, CreditCard } from "lucide-react"
+import Link from "next/link"
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 
 export default function DashboardPage() {
-  const wallet = useWallet()
-  const walletModal = useWalletModal()
-  const [currentPlan, setCurrentPlan] = useState("Free")
-  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly")
-  const [subscriptionStart, setSubscriptionStart] = useState<Date | null>(null)
+  const { user, loading } = useAuth()
+  const { publicKey } = useWallet()
+  const router = useRouter()
 
   useEffect(() => {
-    const plan = localStorage.getItem("user_plan") || "Free"
-    const period = localStorage.getItem("billing_period") || "monthly"
-    const startDate = localStorage.getItem("subscription_start")
-
-    setCurrentPlan(plan)
-    setBillingPeriod(period as "monthly" | "yearly")
-    if (startDate) setSubscriptionStart(new Date(startDate))
-
-    const listener = () => {
-      const updatedPlan = localStorage.getItem("user_plan") || "Free"
-      setCurrentPlan(updatedPlan)
+    if (!loading && !user) {
+      router.push("/")
     }
+  }, [user, loading, router])
 
-    window.addEventListener("storage", listener)
-    return () => window.removeEventListener("storage", listener)
-  }, [])
-
-  const getSubscriptionExpiry = () => {
-    if (!subscriptionStart) return null
-    const expiry = new Date(subscriptionStart)
-    if (billingPeriod === "yearly") {
-      expiry.setFullYear(expiry.getFullYear() + 1)
-    } else {
-      expiry.setMonth(expiry.getMonth() + 1)
-    }
-    return expiry
-  }
-
-  const handleWalletConnect = () => {
-    if (!wallet.connected) {
-      walletModal.setVisible(true)
-    } else {
-      wallet.disconnect()
-    }
-  }
-
-  const copyAddress = () => {
-    if (wallet.publicKey) {
-      navigator.clipboard.writeText(wallet.publicKey.toBase58())
-      toast.success("Wallet address copied!")
-    }
-  }
-
-  if (!wallet.connected) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center text-white">
-        <div className="text-center max-w-md p-10 border border-white/10 bg-white/3 rounded-2xl">
-          <Wallet className="w-12 h-12 text-orange-500 mx-auto mb-4" />
-          <h1 className="text-3xl font-extrabold mb-4">Connect Your Wallet</h1>
-
-          <p className="text-gray-400 mb-8">Access your dashboard, manage API keys, and upgrade your plan.</p>
-
-          <button
-            onClick={handleWalletConnect}
-            className="w-full py-3 rounded-lg cursor-pointer font-medium bg-linear-to-r from-orange-500 to-red-500 hover:opacity-90"
-          >
-            Connect Wallet
-          </button>
-        </div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     )
   }
 
-  const expiryDate = getSubscriptionExpiry()
+  if (!user) return null
+
+  const truncatedAddress = `${user.walletAddress.slice(0, 6)}...${user.walletAddress.slice(-6)}`
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <section className="container mx-auto px-4 py-20">
-        <div className="flex items-center justify-between mb-12">
-          <div>
-            <h1 className="text-4xl font-extrabold mb-2">Dashboard</h1>
-            <p className="text-gray-400">Manage your account, API keys, and subscription.</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <p className="text-sm text-gray-400">Wallet</p>
-              <p className="text-sm font-mono">{wallet.publicKey?.toBase58().slice(0, 8)}...</p>
-            </div>
-            <button
-              onClick={copyAddress}
-              className="p-2 hover:bg-white/10 rounded-lg transition-all"
-              title="Copy wallet address"
-            >
-              <Copy className="w-4 h-4" />
-            </button>
-            <button
-              onClick={handleWalletConnect}
-              className="p-2 hover:bg-red-500/20 text-red-400 rounded-lg transition-all"
-              title="Disconnect wallet"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
+    <>
+      <DashboardHeader />
+      <main className="container mx-auto px-4 py-8">
+        <div className="space-y-8">
+          {/* Welcome Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="p-6 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+              <h2 className="text-2xl font-bold mb-2">Welcome Back!</h2>
+              <p className="text-muted-foreground mb-4">Wallet: {truncatedAddress}</p>
+              <p className="text-sm text-muted-foreground">
+                Manage your API keys, upgrade your plan, and track your usage.
+              </p>
+            </Card>
 
-        {currentPlan !== "Free" && (
-          <div className="mb-8 p-6 rounded-lg border border-orange-500/40 bg-linear-to-r from-orange-500/10 to-transparent">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm text-gray-400">Current Plan</p>
-                <p className="text-2xl font-bold text-orange-400">{currentPlan}</p>
-                <p className="text-sm text-gray-400 mt-2">
-                  Billing: {billingPeriod === "yearly" ? "Yearly" : "Monthly"}
-                </p>
-              </div>
-              {expiryDate && (
-                <div className="text-right">
-                  <p className="text-sm text-gray-400">Expires</p>
-                  <p className="text-lg font-semibold">{expiryDate.toLocaleDateString()}</p>
+            <Card className="p-6">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                    <Wallet className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Connected Wallet</p>
+                    <p className="font-semibold">{truncatedAddress}</p>
+                  </div>
                 </div>
-              )}
-            </div>
+              </div>
+            </Card>
           </div>
-        )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 max-w-6xl">
-          <SubscriptionCard currentPlan={currentPlan} />
-          <ApiKeyManager />
+          {/* Quick Links */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Link href="/dashboard/subscriptions">
+              <Card className="p-4 cursor-pointer hover:border-primary/50 transition-colors">
+                <CreditCard className="w-8 h-8 text-primary mb-2" />
+                <h3 className="font-semibold">Subscription</h3>
+                <p className="text-sm text-muted-foreground">Manage your plan</p>
+              </Card>
+            </Link>
+
+            <Link href="/dashboard/api-keys">
+              <Card className="p-4 cursor-pointer hover:border-primary/50 transition-colors">
+                <Key className="w-8 h-8 text-primary mb-2" />
+                <h3 className="font-semibold">API Keys</h3>
+                <p className="text-sm text-muted-foreground">Create and manage keys</p>
+              </Card>
+            </Link>
+
+            <Link href="/dashboard/usage">
+              <Card className="p-4 cursor-pointer hover:border-primary/50 transition-colors">
+                <TrendingUp className="w-8 h-8 text-primary mb-2" />
+                <h3 className="font-semibold">Usage</h3>
+                <p className="text-sm text-muted-foreground">View your stats</p>
+              </Card>
+            </Link>
+          </div>
+
+          {/* Info Cards */}
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Getting Started</h3>
+            <div className="space-y-3 text-sm text-muted-foreground">
+              <p>✓ Start by creating an API key in the API Keys section</p>
+              <p>✓ Use your key to authenticate requests to our API</p>
+              <p>✓ Upgrade your plan to increase rate limits</p>
+              <p>✓ Monitor your usage in real-time</p>
+            </div>
+          </Card>
         </div>
-      </section>
-    </div>
+      </main>
+    </>
   )
 }

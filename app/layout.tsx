@@ -7,6 +7,7 @@ import "./globals.css"
 import { Header } from "@/components/header"
 import WalletContextProvider from "@/components/WalletProvider"
 import { Footer } from "@/components/ui/footer"
+import { AuthProvider } from "@/components/auth-provider"
 
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
@@ -26,10 +27,12 @@ export default function RootLayout({
     <html lang="en">
       <body className={`font-sans antialiased`}>
         <WalletContextProvider>
-          <Header />
-          {children}
-          <Analytics />
-          <Footer />
+          <AuthProvider>
+            <Header />
+            {children}
+            <Analytics />
+            <Footer />
+          </AuthProvider>
         </WalletContextProvider>
       </body>
     </html>

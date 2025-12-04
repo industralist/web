@@ -1,307 +1,299 @@
 "use client"
 
-import { Check } from "lucide-react"
-import { useWallet } from "@solana/wallet-adapter-react"
-import { Connection, PublicKey, clusterApiUrl, Transaction } from "@solana/web3.js"
-import { getAssociatedTokenAddress, createTransferInstruction } from "@solana/spl-token"
-import { toast } from "sonner"
 import { useState } from "react"
-import {
-  simulateTransaction,
-  validatePaymentParams,
-  parseTransactionError,
-  createSOLTransferInstruction,
-  solToLamports,
-} from "@/lib/transaction-utils"
+import { useWallet, useConnection } from "@solana/wallet-adapter-react"
+import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js"
+import { getAssociatedTokenAddress, createTransferInstruction } from "@solana/spl-token"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Check } from "lucide-react"
+import { toast } from "sonner"
+import { useAuth } from "@/components/auth-provider"
+
+type TokenType = "sol" | "usdt" | "usdc"
+type BillingPeriod = "monthly" | "yearly"
+
+interface Plan {
+  name: string
+  period: BillingPeriod
+  price: {
+    usd: number
+    sol: number
+    usdt: number
+    usdc: number
+  }
+  requests: number
+  features: string[]
+  popular?: boolean
+}
+
+const USDT_MINT = "EPjFWaLb3oCRY59QuU9CLYy37qjodnKwDvE5tqKDqaP"
+const USDC_MINT = "EPjFWaLb3oCRY59QuU9CLYy37qjodnKwDvE5tqKDqaP"
 
 export default function PricingPage() {
-  const { connected, publicKey, sendTransaction, connect } = useWallet()
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly")
-  const [paymentMethod, setPaymentMethod] = useState<"SOL" | "USDT">("USDT")
+  const { connected, publicKey, sendTransaction } = useWallet()
+  const { connection } = useConnection()
+  const { user } = useAuth()
+  const [processing, setProcessing] = useState(false)
+  const [selectedToken, setSelectedToken] = useState<TokenType>("sol")
 
-  // USDT token address (mainnet)
-  const USDT_MINT = "EPjFWaLb3oCRY59QuU9CLYy37qjodnKwDvE5tqKDqaP"
-  const merchantAddress = new PublicKey("BNtr6PvLY2zVBCH9gyEGwNMBBeiRXaK6YfWfWW5yhgxQ")
-  const connection = new Connection(clusterApiUrl("mainnet-beta"), "confirmed")
-
-  const handleSubscribe = async (plan: "Pro" | "Pro+") => {
-    try {
-      if (!connected) {
-        await connect()
-        return
-      }
-
-      if (!publicKey) {
-        toast.error("Wallet not selected. Please select a wallet.")
-        return
-      }
-
-      setIsProcessing(true)
-
-      // Calculate amount based on billing period
-      let usdtAmount = plan === "Pro" ? 300 : 500
-      let solAmount = plan === "Pro" ? 0.5 : 1.0 // Example SOL prices
-
-      if (billingPeriod === "yearly") {
-        usdtAmount = usdtAmount * 10 // 10x discount
-        solAmount = solAmount * 10
-      }
-
-      // Validate payment parameters
-      const validation = validatePaymentParams(
-        paymentMethod === "USDT" ? usdtAmount : solAmount,
-        merchantAddress.toBase58(),
-        plan,
-        billingPeriod,
-        paymentMethod,
-      )
-
-      if (!validation.valid) {
-        toast.error(validation.error)
-        return
-      }
-
-      let transferInstruction
-      let transactionAmount: bigint
-
-      if (paymentMethod === "USDT") {
-        // USDT transfer with 6 decimals
-        transactionAmount = BigInt(usdtAmount * 1_000_000)
-        const usdtMint = new PublicKey(USDT_MINT)
-
-        // Get associated token accounts
-        const senderTokenAccount = await getAssociatedTokenAddress(usdtMint, publicKey)
-        const recipientTokenAccount = await getAssociatedTokenAddress(usdtMint, merchantAddress)
-
-        // Verify sender has token account
-        const senderAccountInfo = await connection.getAccountInfo(senderTokenAccount)
-        if (!senderAccountInfo) {
-          toast.error("You don't have a USDT token account. Please create one first.")
-          setIsProcessing(false)
-          return
-        }
-
-        transferInstruction = createTransferInstruction(
-          senderTokenAccount,
-          recipientTokenAccount,
-          publicKey,
-          transactionAmount,
-        )
-      } else {
-        // SOL transfer
-        transactionAmount = solToLamports(solAmount)
-        transferInstruction = await createSOLTransferInstruction(publicKey, merchantAddress, transactionAmount)
-      }
-
-      // Build transaction
-      const transaction = new Transaction().add(transferInstruction)
-      const latestBlockhash = await connection.getLatestBlockhash()
-      transaction.recentBlockhash = latestBlockhash.blockhash
-      transaction.feePayer = publicKey
-
-      // Simulate transaction first
-      const simulation = await simulateTransaction(connection, transaction, publicKey)
-
-      if (!simulation.success) {
-        toast.error(simulation.error || "Transaction simulation failed")
-        setIsProcessing(false)
-        return
-      }
-
-      // Send transaction
-      toast.loading("Processing payment...")
-      const signature = await sendTransaction(transaction, connection)
-
-      // Confirm transaction
-      await connection.confirmTransaction(signature, "confirmed")
-
-      toast.success(`${plan} plan activated for ${billingPeriod}! Transaction: ${signature.slice(0, 20)}...`)
-
-      // Store subscription info
-      localStorage.setItem("user_plan", plan)
-      localStorage.setItem("billing_period", billingPeriod)
-      localStorage.setItem("plan_signature", signature)
-      localStorage.setItem("subscription_start", new Date().toISOString())
-    } catch (err: any) {
-      const errorMessage = parseTransactionError(err)
-      console.error("Payment error:", err)
-      toast.error(errorMessage)
-    } finally {
-      setIsProcessing(false)
-    }
-  }
-
-  const getPrice = (basePriceUSDT: number, basePriceSOL: number) => {
-    if (paymentMethod === "USDT") {
-      return billingPeriod === "yearly" ? basePriceUSDT * 10 : basePriceUSDT
-    }
-    return billingPeriod === "yearly" ? basePriceSOL * 10 : basePriceSOL
-  }
-
-  const plans = [
+  const plans: Plan[] = [
     {
-      title: "Free",
-      priceUSDT: 0,
-      priceSOL: 0,
-      description: "Limited access, Solana network only",
-      features: ["Limited requests per day", "Solana network access only", "Community support"],
-      buttonText: "Get Started",
-      onClick: () => console.log("Free plan selected"),
+      name: "Free",
+      period: "monthly",
+      price: { usd: 0, sol: 0, usdt: 0, usdc: 0 },
+      requests: 100,
+      features: ["Limited requests per day", "Solana network only", "Community support", "Basic analytics"],
     },
     {
-      title: "Pro",
-      priceUSDT: 300,
-      priceSOL: 0.5,
-      description: "3,000 daily requests",
-      features: ["3,000 API requests per day", "Blockchain network access", "Priority support", "Advanced analytics"],
-      buttonText: connected ? (isProcessing ? "Processing..." : "Subscribe Pro") : "Connect Wallet",
-      onClick: () => handleSubscribe("Pro"),
+      name: "Pro",
+      period: "monthly",
+      price: { usd: 49, sol: 0.25, usdt: 49, usdc: 49 },
+      requests: 3000,
+      features: [
+        "3,000 requests per day",
+        "Multi-network support",
+        "Priority support",
+        "Advanced analytics",
+        "API key management",
+        "Custom webhooks",
+      ],
       popular: true,
     },
     {
-      title: "Pro+",
-      priceUSDT: 500,
-      priceSOL: 1.0,
-      description: "10,000 daily requests, includes all Pro features plus crypto transaction tracing",
+      name: "Pro",
+      period: "yearly",
+      price: { usd: 490, sol: 2.5, usdt: 490, usdc: 490 },
+      requests: 3000,
       features: [
-        "10,000 API requests per day",
-        "Pro plan features included",
-        "Crypto transaction tracing",
+        "3,000 requests per day",
+        "Multi-network support",
         "Priority support",
-        "Full Blockchain network access",
+        "Advanced analytics",
+        "API key management",
+        "Custom webhooks",
+        "Save 20%",
       ],
-      buttonText: connected ? (isProcessing ? "Processing..." : "Subscribe Pro+") : "Connect Wallet",
-      onClick: () => handleSubscribe("Pro+"),
+    },
+    {
+      name: "Pro+",
+      period: "monthly",
+      price: { usd: 99, sol: 0.5, usdt: 99, usdc: 99 },
+      requests: 10000,
+      features: [
+        "10,000 requests per day",
+        "All Pro features",
+        "Crypto transaction tracing",
+        "Advanced security",
+        "Dedicated support",
+        "Custom integrations",
+      ],
+    },
+    {
+      name: "Pro+",
+      period: "yearly",
+      price: { usd: 990, sol: 5, usdt: 990, usdc: 990 },
+      requests: 10000,
+      features: [
+        "10,000 requests per day",
+        "All Pro features",
+        "Crypto transaction tracing",
+        "Advanced security",
+        "Dedicated support",
+        "Custom integrations",
+        "Save 20%",
+      ],
     },
   ]
 
+  const handlePayment = async (plan: Plan) => {
+    if (!connected || !publicKey || !user) {
+      toast.error("Please connect your wallet first")
+      return
+    }
+
+    setProcessing(true)
+    try {
+      const amount = plan.price[selectedToken]
+      if (amount === 0) {
+        toast.error("Free plan selected")
+        setProcessing(false)
+        return
+      }
+
+      let transaction: Transaction
+
+      if (selectedToken === "sol") {
+        transaction = new Transaction().add(
+          SystemProgram.transfer({
+            fromPubkey: publicKey,
+            toPubkey: new PublicKey(process.env.NEXT_PUBLIC_SOLANA_PAYMENT_DESTINATION!),
+            lamports: Math.floor(amount * 1e9),
+          }),
+        )
+      } else {
+        const tokenMint = selectedToken === "usdt" ? USDT_MINT : USDC_MINT
+        const mint = new PublicKey(tokenMint)
+        const decimals = 6
+
+        const senderToken = await getAssociatedTokenAddress(mint, publicKey)
+        const recipientToken = await getAssociatedTokenAddress(
+          mint,
+          new PublicKey(process.env.NEXT_PUBLIC_SOLANA_PAYMENT_DESTINATION!),
+        )
+
+        transaction = new Transaction().add(
+          createTransferInstruction(
+            senderToken,
+            recipientToken,
+            publicKey,
+            BigInt(Math.floor(amount * Math.pow(10, decimals))),
+          ),
+        )
+      }
+
+      const { blockhash } = await connection.getLatestBlockhash()
+      transaction.recentBlockhash = blockhash
+      transaction.feePayer = publicKey
+
+      toast.loading("Processing payment...")
+      const signature = await sendTransaction(transaction, connection)
+
+      await connection.confirmTransaction(signature, "confirmed")
+
+      // Record payment
+      const response = await fetch("/api/payments/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.id,
+          planType: plan.period,
+          tokenType: selectedToken,
+          tokenAmount: amount,
+          amountUsd: plan.price.usd,
+          transactionHash: signature,
+        }),
+      })
+
+      if (response.ok) {
+        toast.success(`Successfully upgraded to ${plan.name}!`)
+      } else {
+        toast.error("Payment recorded but subscription update failed")
+      }
+    } catch (error) {
+      console.error("Payment error:", error)
+      toast.error("Payment failed. Please try again.")
+    } finally {
+      setProcessing(false)
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-black text-white">
-      <section className="py-20 container mx-auto px-4">
+    <div className="min-h-screen bg-background">
+      <section className="container mx-auto px-4 py-20">
         <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-6">
-            Pricing Built for{" "}
-            <span className="text-transparent bg-clip-text bg-linear-to-r from-orange-500 to-red-500">Every User</span>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">
+            Simple, Transparent{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-orange-600">Pricing</span>
           </h1>
-          <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-            Flexible plans designed for analysts, investigators, and security teams.
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            Choose the plan that fits your needs. Upgrade or downgrade anytime.
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-8 mb-16">
-          {/* Billing Period Toggle */}
-          <div className="flex items-center gap-4">
-            <span className="text-gray-300">Billing Period:</span>
-            <div className="flex gap-2 bg-white/10 p-1 rounded-lg">
-              <button
-                onClick={() => setBillingPeriod("monthly")}
-                className={`px-4 py-2 rounded font-medium transition-all ${
-                  billingPeriod === "monthly"
-                    ? "bg-linear-to-r from-orange-500 to-red-500 text-white"
-                    : "text-gray-300 hover:text-white"
-                }`}
-              >
-                Monthly
-              </button>
-              <button
-                onClick={() => setBillingPeriod("yearly")}
-                className={`px-4 py-2 rounded font-medium transition-all ${
-                  billingPeriod === "yearly"
-                    ? "bg-linear-to-r from-orange-500 to-red-500 text-white"
-                    : "text-gray-300 hover:text-white"
-                }`}
-              >
-                Yearly (Save 10x)
-              </button>
-            </div>
-          </div>
-
-          {/* Payment Method Toggle */}
-          <div className="flex items-center gap-4">
-            <span className="text-gray-300">Pay with:</span>
-            <div className="flex gap-2 bg-white/10 p-1 rounded-lg">
-              <button
-                onClick={() => setPaymentMethod("USDT")}
-                className={`px-4 py-2 rounded font-medium transition-all ${
-                  paymentMethod === "USDT"
-                    ? "bg-linear-to-r from-orange-500 to-red-500 text-white"
-                    : "text-gray-300 hover:text-white"
-                }`}
-              >
-                USDT
-              </button>
-              <button
-                onClick={() => setPaymentMethod("SOL")}
-                className={`px-4 py-2 rounded font-medium transition-all ${
-                  paymentMethod === "SOL"
-                    ? "bg-linear-to-r from-orange-500 to-red-500 text-white"
-                    : "text-gray-300 hover:text-white"
-                }`}
-              >
-                SOL
-              </button>
-            </div>
-          </div>
+        {/* Token Selection */}
+        <div className="flex justify-center gap-3 mb-12 flex-wrap">
+          {(["sol", "usdt", "usdc"] as const).map((token) => (
+            <Button
+              key={token}
+              onClick={() => setSelectedToken(token)}
+              variant={selectedToken === token ? "default" : "outline"}
+              className={selectedToken === token ? "bg-gradient-to-r from-primary to-orange-600" : ""}
+            >
+              {token.toUpperCase()}
+            </Button>
+          ))}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        {/* Pricing Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
           {plans.map((plan, index) => (
-            <div
+            <Card
               key={index}
-              className={`p-8 rounded-2xl border ${
-                plan.popular
-                  ? "border-orange-500/40 bg-linear-to-b from-orange-500/10 to-transparent"
-                  : "border-white/10 bg-white/2 hover:bg-white/4"
-              } transition-all flex flex-col relative`}
+              className={`p-6 flex flex-col relative ${
+                plan.popular ? "border-primary/50 bg-gradient-to-b from-primary/10 to-transparent" : ""
+              }`}
             >
               {plan.popular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className="bg-linear-to-r from-orange-500 to-red-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
+                  <span className="bg-gradient-to-r from-primary to-orange-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
                     Most Popular
                   </span>
                 </div>
               )}
-              <h3 className="font-semibold text-2xl mb-2">{plan.title}</h3>
-              <div className="mb-3">
-                {plan.title !== "Free" && (
-                  <>
-                    <span className="text-5xl font-extrabold">
-                      {paymentMethod === "USDT"
-                        ? getPrice(plan.priceUSDT, plan.priceSOL)
-                        : getPrice(plan.priceUSDT, plan.priceSOL)}
-                    </span>
-                    <span className="text-gray-400 text-lg ml-2">{paymentMethod}</span>
-                    <span className="text-gray-400 text-lg">{billingPeriod === "yearly" ? "/year" : "/month"}</span>
-                  </>
+
+              <div className="mb-6">
+                <h3 className="text-2xl font-bold">{plan.name}</h3>
+                <p className="text-muted-foreground text-sm capitalize">{plan.period}ly billing</p>
+              </div>
+
+              <div className="mb-6">
+                <span className="text-4xl font-bold">${plan.price.usd}</span>
+                <p className="text-muted-foreground text-sm">per {plan.period}</p>
+                {selectedToken !== "sol" && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {plan.price[selectedToken]} {selectedToken.toUpperCase()}
+                  </p>
                 )}
               </div>
-              <p className="text-gray-400 text-sm mb-8">{plan.description}</p>
-              <div className="space-y-4 mb-8 grow">
+
+              <div className="mb-6 p-3 bg-card rounded-lg">
+                <p className="text-sm font-semibold">{plan.requests.toLocaleString()} requests/day</p>
+              </div>
+
+              <div className="mb-8 space-y-3 flex-1">
                 {plan.features.map((feature, i) => (
-                  <div key={i} className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
-                    <span className="text-gray-300 text-sm">{feature}</span>
+                  <div key={i} className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                    <span className="text-sm">{feature}</span>
                   </div>
                 ))}
               </div>
-              <button
-                className={`w-full py-3 px-6 rounded-lg font-medium transition-all ${
-                  plan.popular
-                    ? connected && !isProcessing
-                      ? "bg-linear-to-r from-orange-500 to-red-500 text-white hover:opacity-90 cursor-pointer"
-                      : "bg-gray-700 text-gray-400 cursor-not-allowed"
-                    : connected && !isProcessing
-                      ? "border border-white/20 text-white hover:bg-white/5 cursor-pointer"
-                      : "border border-gray-600 text-gray-400 cursor-not-allowed"
-                }`}
-                onClick={plan.onClick}
-                disabled={plan.title !== "Free" && (!connected || isProcessing)}
+
+              <Button
+                onClick={() => handlePayment(plan)}
+                disabled={processing || (plan.price.usd === 0 && !connected)}
+                className={plan.popular ? "bg-gradient-to-r from-primary to-orange-600 w-full" : "w-full"}
               >
-                {plan.buttonText}
-              </button>
-            </div>
+                {plan.price.usd === 0 ? "Get Started" : connected ? "Subscribe" : "Connect Wallet"}
+              </Button>
+            </Card>
           ))}
+        </div>
+
+        {/* FAQ Section */}
+        <div className="mt-20 max-w-2xl mx-auto">
+          <h2 className="text-2xl font-bold mb-8 text-center">Frequently Asked Questions</h2>
+          <div className="space-y-4">
+            <Card className="p-4">
+              <h3 className="font-semibold mb-2">Can I upgrade or downgrade anytime?</h3>
+              <p className="text-muted-foreground text-sm">
+                Yes! You can upgrade or downgrade your plan at any time. Changes take effect immediately.
+              </p>
+            </Card>
+            <Card className="p-4">
+              <h3 className="font-semibold mb-2">What payment methods do you accept?</h3>
+              <p className="text-muted-foreground text-sm">
+                We accept SOL, USDT, and USDC on the Solana network. Payments are processed directly to your wallet.
+              </p>
+            </Card>
+            <Card className="p-4">
+              <h3 className="font-semibold mb-2">Is there a refund policy?</h3>
+              <p className="text-muted-foreground text-sm">
+                We offer a 7-day money-back guarantee. Contact support if you have any issues.
+              </p>
+            </Card>
+          </div>
         </div>
       </section>
     </div>
