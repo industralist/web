@@ -1,70 +1,89 @@
-"use client";
+"use client"
 
-import { useState, useCallback } from "react";
-import { useWallet } from "@solana/wallet-adapter-react";
-import {
-  Connection,
-  PublicKey,
-  clusterApiUrl,
-  Transaction,
-  SystemProgram,
-} from "@solana/web3.js";
+import { useState, useCallback } from "react"
+import { useWallet } from "@solana/wallet-adapter-react"
+import { Connection, PublicKey, Transaction, clusterApiUrl } from "@solana/web3.js"
+import { createTransferInstruction, getAssociatedTokenAddress } from "@solana/spl-token"
 
 export function usePlanUpgrade() {
-  const { connected, publicKey, sendTransaction, connect } = useWallet();
-  const [loading, setLoading] = useState(false);
-  const [successPlan, setSuccessPlan] = useState<string | null>(null);
+  const { connected, publicKey, sendTransaction, connect } = useWallet()
+  const [loading, setLoading] = useState(false)
+  const [successPlan, setSuccessPlan] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
-  const connection = new Connection(
-    `https://mainnet.helius-rpc.com/?api-key=${process.env.NEXT_PUBLIC_HELIUS_API_KEY}`,
-    "confirmed"
-  );
+  const connection = new Connection(clusterApiUrl("mainnet-beta"), "confirmed")
 
-  const merchantAddress = new PublicKey(
-    `${process.env.NEXT_PUBLIC_SOLANA_PAYMENT_DESTINATION}`
-  );
+  const merchantAddress = new PublicKey(`${process.env.NEXT_PUBLIC_SOLANA_PAYMENT_DESTINATION}`)
+
+  // USDT token mint
+  const USDT_MINT = "EPjFWaLb3oCRY59QuU9CLYy37qjodnKwDvE5tqKDqaP"
 
   const upgradePlan = useCallback(
     async (plan: "Pro" | "Pro+") => {
       try {
+        setError(null)
+
         if (!connected) {
-          await connect();
-          return;
+          await connect()
+          return
         }
 
-        setLoading(true);
-        setSuccessPlan(null);
+        if (!publicKey) {
+          setError("Wallet not selected. Please select a wallet.")
+          return
+        }
 
-        const price = plan === "Pro" ? 0.1 : 0.2;
-        const lamports = price * 1_000_000_000;
+        setLoading(true)
+        setSuccessPlan(null)
 
-        const tx = new Transaction().add(
-          SystemProgram.transfer({
-            fromPubkey: publicKey!,
-            toPubkey: merchantAddress,
-            lamports,
-          })
-        );
+        // USDT amounts (300 or 500 with 6 decimals)
+        const usdtAmount = plan === "Pro" ? 300 : 500
+        const tokenAmount = usdtAmount * 1_000_000
 
-        const signature = await sendTransaction(tx, connection);
-        await connection.confirmTransaction(signature, "confirmed");
+        const usdtMint = new PublicKey(USDT_MINT)
+
+        // Get associated token accounts
+        const senderTokenAccount = await getAssociatedTokenAddress(usdtMint, publicKey)
+        const recipientTokenAccount = await getAssociatedTokenAddress(usdtMint, merchantAddress)
+
+        // Create transfer instruction
+        const transferInstruction = createTransferInstruction(
+          senderTokenAccount,
+          recipientTokenAccount,
+          publicKey,
+          BigInt(tokenAmount),
+        )
+
+        const tx = new Transaction().add(transferInstruction)
+
+        // Get latest blockhash to avoid stale transaction
+        const latestBlockhash = await connection.getLatestBlockhash()
+        tx.recentBlockhash = latestBlockhash.blockhash
+        tx.feePayer = publicKey
+
+        const signature = await sendTransaction(tx, connection)
+        await connection.confirmTransaction(signature, "confirmed")
 
         // Persist plan
-        localStorage.setItem("user_plan", plan);
-        setSuccessPlan(plan);
-      } catch (err) {
-        console.error("Payment upgrade error:", err);
+        localStorage.setItem("user_plan", plan)
+        localStorage.setItem("plan_signature", signature)
+        setSuccessPlan(plan)
+      } catch (err: any) {
+        const errorMessage = err.message || "Payment failed. Please try again."
+        console.error("Payment upgrade error:", err)
+        setError(errorMessage)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
     },
-    [connected, connect, publicKey, sendTransaction, connection]
-  );
+    [connected, connect, publicKey, sendTransaction],
+  )
 
   return {
     upgradePlan,
     loading,
     successPlan,
+    error,
     connected,
-  };
+  }
 }

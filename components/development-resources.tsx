@@ -5,8 +5,8 @@ import { BookOpen, Code2, GraduationCap, Github } from "lucide-react"
 export function DevelopmentResources() {
   const resources = [
     {
-      title: "Solana Documentation",
-      description: "Complete guide to building on Solana",
+      title: "Blockchain Documentation",
+      description: "Complete guide to building with blockchain technology",
       icon: BookOpen,
       color: "from-blue-500/20 to-blue-600/20",
       borderColor: "border-blue-500/30",
@@ -20,7 +20,7 @@ export function DevelopmentResources() {
     },
     {
       title: "Developer Bootcamp",
-      description: "11 hours of video lessons on Solana development",
+      description: "11 hours of video lessons on blockchain development",
       icon: GraduationCap,
       color: "from-purple-500/20 to-pink-500/20",
       borderColor: "border-purple-500/30",
@@ -36,7 +36,7 @@ export function DevelopmentResources() {
 
   return (
     <div className="mt-12 pt-8 border-t border-slate-700/50">
-      <h3 className="text-2xl font-bold text-white mb-6">Kickstart Your Development Journey on Solana</h3>
+      <h3 className="text-2xl font-bold text-white mb-6">Kickstart Your Development Journey in Blockchain</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {resources.map((resource, idx) => {
           const Icon = resource.icon

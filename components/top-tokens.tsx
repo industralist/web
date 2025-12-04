@@ -36,7 +36,7 @@ export function TopTokens() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">Top Tokens</h2>
-        <p className="text-gray-400">Solana ecosystem trending tokens</p>
+        <p className="text-gray-400">Blockchain ecosystem trending tokens</p>
       </div>
 
       <div

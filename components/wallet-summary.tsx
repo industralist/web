@@ -54,7 +54,7 @@ export function WalletSummary({ walletAddress }: WalletSummaryProps) {
       icon: Activity,
       label: "Last Activity",
       value: wallet.lastTransaction ? new Date(wallet.lastTransaction * 1000).toLocaleDateString() : "Never",
-      subtext: "on Solana network",
+      subtext: "on blockchain network",
       color: "from-green-500 to-emerald-500",
     },
   ]

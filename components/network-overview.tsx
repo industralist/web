@@ -40,7 +40,7 @@ export function NetworkOverview() {
         <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3">
           <span className="bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">Piflepath</span>
           <span className="text-sm md:text-base bg-orange-500 text-black px-3 py-1 rounded-full font-semibold">
-            Solana Tracker
+            Blockchain Tracker
           </span>
         </h1>
         <p className="text-gray-400">Real-time blockchain insights and wallet analytics</p>

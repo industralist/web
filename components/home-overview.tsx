@@ -7,7 +7,7 @@ export function HomeOverview() {
     {
       icon: BarChart3,
       title: "Network Statistics",
-      description: "Real-time Solana blockchain metrics and performance indicators",
+      description: "Real-time blockchain metrics and performance indicators",
       items: ["Block Height", "Slot Time", "Epoch Progress", "Network Load"],
     },
     {
