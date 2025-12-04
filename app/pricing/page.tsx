@@ -6,11 +6,19 @@ import { Connection, PublicKey, clusterApiUrl, Transaction } from "@solana/web3.
 import { getAssociatedTokenAddress, createTransferInstruction } from "@solana/spl-token"
 import { toast } from "sonner"
 import { useState } from "react"
-import { simulateTransaction, validatePaymentParams, parseTransactionError } from "@/lib/transaction-utils"
+import {
+  simulateTransaction,
+  validatePaymentParams,
+  parseTransactionError,
+  createSOLTransferInstruction,
+  solToLamports,
+} from "@/lib/transaction-utils"
 
 export default function PricingPage() {
   const { connected, publicKey, sendTransaction, connect } = useWallet()
   const [isProcessing, setIsProcessing] = useState(false)
+  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly")
+  const [paymentMethod, setPaymentMethod] = useState<"SOL" | "USDT">("USDT")
 
   // USDT token address (mainnet)
   const USDT_MINT = "EPjFWaLb3oCRY59QuU9CLYy37qjodnKwDvE5tqKDqaP"
@@ -31,30 +39,60 @@ export default function PricingPage() {
 
       setIsProcessing(true)
 
+      // Calculate amount based on billing period
+      let usdtAmount = plan === "Pro" ? 300 : 500
+      let solAmount = plan === "Pro" ? 0.5 : 1.0 // Example SOL prices
+
+      if (billingPeriod === "yearly") {
+        usdtAmount = usdtAmount * 10 // 10x discount
+        solAmount = solAmount * 10
+      }
+
       // Validate payment parameters
-      const usdtAmount = plan === "Pro" ? 300 : 500
-      const validation = validatePaymentParams(usdtAmount, merchantAddress.toBase58(), plan)
+      const validation = validatePaymentParams(
+        paymentMethod === "USDT" ? usdtAmount : solAmount,
+        merchantAddress.toBase58(),
+        plan,
+        billingPeriod,
+        paymentMethod,
+      )
 
       if (!validation.valid) {
         toast.error(validation.error)
         return
       }
 
-      // Token amount with USDT 6 decimals
-      const tokenAmount = BigInt(usdtAmount * 1_000_000)
-      const usdtMint = new PublicKey(USDT_MINT)
+      let transferInstruction
+      let transactionAmount: bigint
 
-      // Get associated token accounts
-      const senderTokenAccount = await getAssociatedTokenAddress(usdtMint, publicKey)
-      const recipientTokenAccount = await getAssociatedTokenAddress(usdtMint, merchantAddress)
+      if (paymentMethod === "USDT") {
+        // USDT transfer with 6 decimals
+        transactionAmount = BigInt(usdtAmount * 1_000_000)
+        const usdtMint = new PublicKey(USDT_MINT)
 
-      // Create transfer instruction
-      const transferInstruction = createTransferInstruction(
-        senderTokenAccount,
-        recipientTokenAccount,
-        publicKey,
-        tokenAmount,
-      )
+        // Get associated token accounts
+        const senderTokenAccount = await getAssociatedTokenAddress(usdtMint, publicKey)
+        const recipientTokenAccount = await getAssociatedTokenAddress(usdtMint, merchantAddress)
+
+        // Verify sender has token account
+        const senderAccountInfo = await connection.getAccountInfo(senderTokenAccount)
+        if (!senderAccountInfo) {
+          toast.error("You don't have a USDT token account. Please create one first.")
+          setIsProcessing(false)
+          return
+        }
+
+        transferInstruction = createTransferInstruction(
+          senderTokenAccount,
+          recipientTokenAccount,
+          publicKey,
+          transactionAmount,
+        )
+      } else {
+        // SOL transfer
+        transactionAmount = solToLamports(solAmount)
+        transferInstruction = await createSOLTransferInstruction(publicKey, merchantAddress, transactionAmount)
+      }
 
       // Build transaction
       const transaction = new Transaction().add(transferInstruction)
@@ -78,12 +116,13 @@ export default function PricingPage() {
       // Confirm transaction
       await connection.confirmTransaction(signature, "confirmed")
 
-      toast.success(`${plan} plan activated! Transaction: ${signature.slice(0, 20)}...`)
-      console.log(`Payment successful! Signature: ${signature}`)
+      toast.success(`${plan} plan activated for ${billingPeriod}! Transaction: ${signature.slice(0, 20)}...`)
 
       // Store subscription info
       localStorage.setItem("user_plan", plan)
+      localStorage.setItem("billing_period", billingPeriod)
       localStorage.setItem("plan_signature", signature)
+      localStorage.setItem("subscription_start", new Date().toISOString())
     } catch (err: any) {
       const errorMessage = parseTransactionError(err)
       console.error("Payment error:", err)
@@ -93,20 +132,27 @@ export default function PricingPage() {
     }
   }
 
+  const getPrice = (basePriceUSDT: number, basePriceSOL: number) => {
+    if (paymentMethod === "USDT") {
+      return billingPeriod === "yearly" ? basePriceUSDT * 10 : basePriceUSDT
+    }
+    return billingPeriod === "yearly" ? basePriceSOL * 10 : basePriceSOL
+  }
+
   const plans = [
     {
       title: "Free",
-      price: "0",
-      period: "",
+      priceUSDT: 0,
+      priceSOL: 0,
       description: "Limited access, Solana network only",
-      features: ["Limited requests per day", "Solana network access only"],
+      features: ["Limited requests per day", "Solana network access only", "Community support"],
       buttonText: "Get Started",
       onClick: () => console.log("Free plan selected"),
     },
     {
       title: "Pro",
-      price: "300 USDT",
-      period: "/month",
+      priceUSDT: 300,
+      priceSOL: 0.5,
       description: "3,000 daily requests",
       features: ["3,000 API requests per day", "Blockchain network access", "Priority support", "Advanced analytics"],
       buttonText: connected ? (isProcessing ? "Processing..." : "Subscribe Pro") : "Connect Wallet",
@@ -115,8 +161,8 @@ export default function PricingPage() {
     },
     {
       title: "Pro+",
-      price: "500 USDT",
-      period: "/month",
+      priceUSDT: 500,
+      priceSOL: 1.0,
       description: "10,000 daily requests, includes all Pro features plus crypto transaction tracing",
       features: [
         "10,000 API requests per day",
@@ -143,6 +189,62 @@ export default function PricingPage() {
           </p>
         </div>
 
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-8 mb-16">
+          {/* Billing Period Toggle */}
+          <div className="flex items-center gap-4">
+            <span className="text-gray-300">Billing Period:</span>
+            <div className="flex gap-2 bg-white/10 p-1 rounded-lg">
+              <button
+                onClick={() => setBillingPeriod("monthly")}
+                className={`px-4 py-2 rounded font-medium transition-all ${
+                  billingPeriod === "monthly"
+                    ? "bg-linear-to-r from-orange-500 to-red-500 text-white"
+                    : "text-gray-300 hover:text-white"
+                }`}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setBillingPeriod("yearly")}
+                className={`px-4 py-2 rounded font-medium transition-all ${
+                  billingPeriod === "yearly"
+                    ? "bg-linear-to-r from-orange-500 to-red-500 text-white"
+                    : "text-gray-300 hover:text-white"
+                }`}
+              >
+                Yearly (Save 10x)
+              </button>
+            </div>
+          </div>
+
+          {/* Payment Method Toggle */}
+          <div className="flex items-center gap-4">
+            <span className="text-gray-300">Pay with:</span>
+            <div className="flex gap-2 bg-white/10 p-1 rounded-lg">
+              <button
+                onClick={() => setPaymentMethod("USDT")}
+                className={`px-4 py-2 rounded font-medium transition-all ${
+                  paymentMethod === "USDT"
+                    ? "bg-linear-to-r from-orange-500 to-red-500 text-white"
+                    : "text-gray-300 hover:text-white"
+                }`}
+              >
+                USDT
+              </button>
+              <button
+                onClick={() => setPaymentMethod("SOL")}
+                className={`px-4 py-2 rounded font-medium transition-all ${
+                  paymentMethod === "SOL"
+                    ? "bg-linear-to-r from-orange-500 to-red-500 text-white"
+                    : "text-gray-300 hover:text-white"
+                }`}
+              >
+                SOL
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {plans.map((plan, index) => (
             <div
@@ -162,8 +264,17 @@ export default function PricingPage() {
               )}
               <h3 className="font-semibold text-2xl mb-2">{plan.title}</h3>
               <div className="mb-3">
-                {plan.price && <span className="text-5xl font-extrabold">{plan.price}</span>}
-                {plan.period && <span className="text-gray-400 text-lg">{plan.period}</span>}
+                {plan.title !== "Free" && (
+                  <>
+                    <span className="text-5xl font-extrabold">
+                      {paymentMethod === "USDT"
+                        ? getPrice(plan.priceUSDT, plan.priceSOL)
+                        : getPrice(plan.priceUSDT, plan.priceSOL)}
+                    </span>
+                    <span className="text-gray-400 text-lg ml-2">{paymentMethod}</span>
+                    <span className="text-gray-400 text-lg">{billingPeriod === "yearly" ? "/year" : "/month"}</span>
+                  </>
+                )}
               </div>
               <p className="text-gray-400 text-sm mb-8">{plan.description}</p>
               <div className="space-y-4 mb-8 grow">
