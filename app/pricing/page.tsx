@@ -1,12 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useWallet, useConnection } from "@solana/wallet-adapter-react"
 import { PublicKey, Transaction } from "@solana/web3.js"
 import { getAssociatedTokenAddress, createTransferInstruction } from "@solana/spl-token"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Check } from "lucide-react"
+import { Check, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
 import { useAuth } from "@/components/auth-provider"
 import { motion } from "framer-motion"
@@ -32,6 +32,8 @@ export default function PricingPage() {
   const [processing, setProcessing] = useState(false)
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>("monthly")
   const [selectedToken, setSelectedToken] = useState<"usdt" | "usdc">("usdt")
+  const [walletBalance, setWalletBalance] = useState<number | null>(null)
+  const [checkingBalance, setCheckingBalance] = useState(false)
 
   const plans: Plan[] = [
     {
@@ -72,22 +74,65 @@ export default function PricingPage() {
     },
   ]
 
+  useEffect(() => {
+    if (connected && publicKey) {
+      checkTokenBalance()
+    }
+  }, [connected, publicKey, selectedToken])
+
+  const checkTokenBalance = async () => {
+    if (!publicKey) return
+
+    setCheckingBalance(true)
+    try {
+      const tokenMint = new PublicKey(selectedToken === "usdt" ? USDT_MINT : USDC_MINT)
+      const tokenAccount = await getAssociatedTokenAddress(tokenMint, publicKey)
+
+      try {
+        const accountInfo = await connection.getParsedAccountInfo(tokenAccount)
+        if (accountInfo.value && accountInfo.value.data) {
+          const parsedData = accountInfo.value.data as any
+          const balance = parsedData.parsed.info.tokenAmount.uiAmount || 0
+          setWalletBalance(balance)
+        } else {
+          setWalletBalance(0)
+        }
+      } catch (error) {
+        setWalletBalance(0)
+      }
+    } catch (error) {
+      console.error("Error checking balance:", error)
+      setWalletBalance(null)
+    } finally {
+      setCheckingBalance(false)
+    }
+  }
+
   const handlePayment = async (plan: Plan) => {
     if (!connected || !publicKey || !user) {
       toast.error("Please connect your wallet first")
       return
     }
 
+    const price = billingPeriod === "monthly" ? plan.monthlyPrice : plan.yearlyPrice
+
+    if (price === 0) {
+      toast.success("Free plan - no payment required")
+      return
+    }
+
+    if (walletBalance === null || walletBalance < price) {
+      toast.error(
+        `Insufficient balance. You have ${walletBalance ?? 0} ${selectedToken.toUpperCase()} but need ${price}. Please add funds to your wallet.`,
+        {
+          icon: <AlertCircle className="w-5 h-5" />,
+        },
+      )
+      return
+    }
+
     setProcessing(true)
     try {
-      const price = billingPeriod === "monthly" ? plan.monthlyPrice : plan.yearlyPrice
-
-      if (price === 0) {
-        toast.error("Free plan selected")
-        setProcessing(false)
-        return
-      }
-
       const tokenMint = selectedToken === "usdt" ? USDT_MINT : USDC_MINT
       const mint = new PublicKey(tokenMint)
       const decimals = 6
@@ -111,13 +156,13 @@ export default function PricingPage() {
       transaction.recentBlockhash = blockhash
       transaction.feePayer = publicKey
 
-      toast.loading("Processing payment...")
+      toast.loading("Requesting wallet signature...")
       const signature = await sendTransaction(transaction, connection)
 
+      toast.loading("Confirming transaction...")
       await connection.confirmTransaction(signature, "confirmed")
 
-      // Record payment
-      const response = await fetch("/api/payments/create", {
+      const response = await fetch("/api/payment/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -132,12 +177,17 @@ export default function PricingPage() {
 
       if (response.ok) {
         toast.success(`Successfully upgraded to ${plan.name}!`)
+        setWalletBalance((prev) => (prev ? prev - price : null))
       } else {
         toast.error("Payment recorded but subscription update failed")
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Payment error:", error)
-      toast.error("Payment failed. Please try again.")
+      if (error.message?.includes("user rejected")) {
+        toast.error("Payment cancelled by user")
+      } else {
+        toast.error("Payment failed. Please try again.")
+      }
     } finally {
       setProcessing(false)
     }
@@ -187,7 +237,7 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* Token Selection - USDT/USDC only */}
+        {/* Token Selection */}
         <div className="flex justify-center gap-3 mb-12 flex-wrap">
           {(["usdt", "usdc"] as const).map((token) => (
             <Button
@@ -248,13 +298,15 @@ export default function PricingPage() {
 
                 <Button
                   onClick={() => handlePayment(plan)}
-                  disabled={processing || (plan.price === 0 && !connected)}
+                  disabled={processing || (plan.price === 0 && !connected) || checkingBalance}
                   className={plan.popular ? "bg-gradient-to-r from-primary to-orange-600 w-full" : "w-full"}
                 >
                   {plan.price === 0
                     ? "Get Started"
                     : connected
-                      ? `Pay with ${selectedToken.toUpperCase()}`
+                      ? checkingBalance
+                        ? "Checking balance..."
+                        : `Pay ${selectedToken.toUpperCase()}`
                       : "Connect Wallet"}
                 </Button>
               </Card>

@@ -1,15 +1,22 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Copy, Code2, BookOpen } from "lucide-react"
+import { Copy, Code2, BookOpen, Send, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useState } from "react"
 import { toast } from "sonner"
 import Link from "next/link"
+import { useAuth } from "@/components/auth-provider"
 
 export default function DocsPage() {
+  const { user } = useAuth()
   const [activeTab, setActiveTab] = useState<"curl" | "js" | "python">("curl")
+  const [selectedEndpoint, setSelectedEndpoint] = useState<string>("/v1/wallet/:address")
+  const [apiKey, setApiKey] = useState("")
+  const [testParams, setTestParams] = useState({ address: "EPjFWaLb3odccxmLVGGJMKc1EvYkUyt2j9tzLCUHhP8i" })
+  const [testResult, setTestResult] = useState<{ status?: number; data?: unknown; error?: string } | null>(null)
+  const [testing, setTesting] = useState(false)
 
   const copyExample = (text: string) => {
     navigator.clipboard.writeText(text)
@@ -88,6 +95,40 @@ data = response.json()`,
     },
   ]
 
+  const handleTestRequest = async () => {
+    if (!apiKey.trim()) {
+      toast.error("Please enter an API key to test")
+      return
+    }
+
+    setTesting(true)
+    try {
+      const endpoint = selectedEndpoint.replace(":address", testParams.address)
+      const response = await fetch(`/api${endpoint}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+      })
+
+      const data = await response.json()
+      setTestResult({ status: response.status, data })
+
+      if (response.ok) {
+        toast.success("Request successful!")
+      } else {
+        toast.error(`Request failed with status ${response.status}`)
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error"
+      setTestResult({ error: errorMessage })
+      toast.error("Request failed: " + errorMessage)
+    } finally {
+      setTesting(false)
+    }
+  }
+
   return (
     <main className="min-h-screen bg-background">
       {/* Hero Section */}
@@ -98,12 +139,12 @@ data = response.json()`,
               <BookOpen className="w-6 h-6 text-primary" />
               <span className="text-sm font-medium text-primary">Documentation</span>
             </div>
-            <h1 className="text-5xl md:text-6xl font-bold mb-6">Build with the Pifflepath API</h1>
-            <p className="text-xl text-muted-foreground mb-8">
+            <h1 className="text-4xl md:text-5xl font-bold mb-6">Build with the Pifflepath API</h1>
+            <p className="text-lg md:text-xl text-muted-foreground mb-8">
               Integrate blockchain intelligence into your applications. Real-time wallet tracking, transaction
               monitoring, and token analysis.
             </p>
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-wrap">
               <Button asChild>
                 <Link href="/api-keys">Get Your API Key</Link>
               </Button>
@@ -223,12 +264,12 @@ data = response.json()`,
 
               <div className="space-y-4">
                 {/* Language Tabs */}
-                <div className="flex gap-2 border-b border-border">
+                <div className="flex gap-2 border-b border-border overflow-x-auto">
                   {(["curl", "js", "python"] as const).map((lang) => (
                     <button
                       key={lang}
                       onClick={() => setActiveTab(lang)}
-                      className={`px-4 py-2 border-b-2 transition-colors text-sm font-medium ${
+                      className={`px-4 py-2 border-b-2 transition-colors text-sm font-medium whitespace-nowrap ${
                         activeTab === lang
                           ? "border-primary text-primary"
                           : "border-transparent text-muted-foreground hover:text-foreground"
@@ -252,6 +293,124 @@ data = response.json()`,
                   >
                     <Copy className="w-4 h-4" />
                   </Button>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* API Testing Section */}
+      <section className="py-20 border-b border-border bg-card/50">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="space-y-8"
+          >
+            <div>
+              <h2 className="text-3xl font-bold mb-2">Test API Requests</h2>
+              <p className="text-muted-foreground">Try out the API directly using your API key</p>
+            </div>
+
+            <Card className="p-6 space-y-6">
+              {!user && (
+                <div className="flex gap-3 p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                  <AlertCircle className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-blue-700 dark:text-blue-400">
+                    <p className="font-medium">Sign in to test API requests</p>
+                    <p className="text-xs opacity-90">You need to be logged in and have an API key to test requests.</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Left: Configuration */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold">Configuration</h3>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">API Key</label>
+                    <input
+                      type="password"
+                      placeholder="Enter your API key"
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      disabled={!user}
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground text-sm disabled:opacity-50"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Get your key from{" "}
+                      <Link href="/api-keys" className="text-primary hover:underline">
+                        API Keys
+                      </Link>{" "}
+                      page
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Endpoint</label>
+                    <select
+                      value={selectedEndpoint}
+                      onChange={(e) => setSelectedEndpoint(e.target.value)}
+                      disabled={!user}
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm disabled:opacity-50"
+                    >
+                      <option value="/v1/wallet/:address">GET /v1/wallet/:address</option>
+                      <option value="/v1/wallet/:address/transactions">GET /v1/wallet/:address/transactions</option>
+                      <option value="/v1/tokens/trending">GET /v1/tokens/trending</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Wallet Address</label>
+                    <input
+                      type="text"
+                      placeholder="EPjFWaLb3odccxmLVGGJMKc1EvYkUyt2j9tzLCUHhP8i"
+                      value={testParams.address}
+                      onChange={(e) => setTestParams({ ...testParams, address: e.target.value })}
+                      disabled={!user}
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground text-sm disabled:opacity-50 font-mono"
+                    />
+                  </div>
+
+                  <Button
+                    onClick={handleTestRequest}
+                    disabled={!user || !apiKey.trim() || testing}
+                    className="w-full gap-2 mt-4"
+                  >
+                    <Send className="w-4 h-4" />
+                    {testing ? "Testing..." : "Send Request"}
+                  </Button>
+                </div>
+
+                {/* Right: Response */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold">Response</h3>
+                  <div className="min-h-[300px] bg-background rounded-lg border border-border p-4 overflow-auto">
+                    {testResult ? (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Status:</span>
+                          <span
+                            className={`px-2 py-1 rounded text-xs font-mono ${
+                              testResult.status && testResult.status >= 200 && testResult.status < 300
+                                ? "bg-green-500/10 text-green-500"
+                                : "bg-red-500/10 text-red-500"
+                            }`}
+                          >
+                            {testResult.status || "Error"}
+                          </span>
+                        </div>
+                        <pre className="text-xs text-foreground/70 overflow-x-auto whitespace-pre-wrap break-words font-mono">
+                          {testResult.error ? `Error: ${testResult.error}` : JSON.stringify(testResult.data, null, 2)}
+                        </pre>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Response will appear here</p>
+                    )}
+                  </div>
                 </div>
               </div>
             </Card>

@@ -1,8 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-
-
 @custom-variant dark (&:is(.dark *));
 
 :root {
@@ -32,14 +30,15 @@
   --chart-4: #ff6b3b;
   --chart-5: #ffb380;
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Changed sidebar colors to match dark theme background instead of white */
+  --sidebar: #1a1410;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #ff6b3b;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #2a2420;
+  --sidebar-accent-foreground: #ff6b3b;
+  --sidebar-border: #2a2420;
+  --sidebar-ring: #ff6b3b;
 }
 
 .dark {
@@ -68,14 +67,15 @@
   --chart-3: #ffa366;
   --chart-4: #ff6b3b;
   --chart-5: #ffb380;
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  /* Dark sidebar colors match light theme sidebar for consistency */
+  --sidebar: #1a1410;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #ff6b3b;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #2a2420;
+  --sidebar-accent-foreground: #ff6b3b;
+  --sidebar-border: #2a2420;
+  --sidebar-ring: #ff6b3b;
 }
 
 @theme inline {
@@ -165,7 +165,6 @@
 }
 
 @keyframes glow-pulse {
-
   0%,
   100% {
     box-shadow: 0 0 20px rgba(255, 107, 59, 0.2);

@@ -1,7 +1,6 @@
 "use client"
 
 import { useAuth } from "@/components/auth-provider"
-import { redirect } from "next/navigation"
 import LandingPage from "./landing"
 
 export default function Page() {
@@ -16,10 +15,6 @@ export default function Page() {
         </div>
       </div>
     )
-  }
-
-  if (user) {
-    redirect("/dashboard")
   }
 
   return <LandingPage />

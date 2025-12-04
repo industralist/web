@@ -10,16 +10,18 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { BarChart3, Search, Key, CreditCard, Settings, LogOut } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
+import { BarChart3, Search, Key, CreditCard, Settings, LogOut, Home } from "lucide-react"
 import { useAuth } from "./auth-provider"
 import { Button } from "./ui/button"
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const router = useRouter()
   const { user, logout } = useAuth()
 
   const menuItems = [
+    { href: "/", label: "Home", icon: Home },
     { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
     { href: "/explorer", label: "Explorer", icon: Search },
     { href: "/api-keys", label: "API Keys", icon: Key },
@@ -27,11 +29,16 @@ export function AppSidebar() {
     { href: "/settings", label: "Settings", icon: Settings },
   ]
 
+  const handleLogout = () => {
+    logout()
+    router.push("/")
+  }
+
   return (
-    <Sidebar className="border-r border-border bg-card">
+    <Sidebar className="border-r border-border bg-background">
       <SidebarHeader className="border-b border-border px-4 py-4">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-linear-to-br from-primary to-orange-600 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-orange-600 flex items-center justify-center">
             <BarChart3 className="text-white font-bold text-sm w-5 h-5" />
           </div>
           <div>
@@ -45,7 +52,7 @@ export function AppSidebar() {
         <SidebarMenu>
           {menuItems.map((item) => {
             const Icon = item.icon
-            const isActive = pathname === item.href
+            const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
             return (
               <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton asChild isActive={isActive}>
@@ -62,7 +69,7 @@ export function AppSidebar() {
 
       <SidebarFooter className="border-t border-border p-4">
         <div className="flex flex-col gap-3">
-          <div className="p-3 rounded-lg bg-card-bg border border-card-border">
+          <div className="p-3 rounded-lg bg-card border border-border">
             <p className="text-xs text-muted-foreground">Connected Wallet</p>
             <p className="text-sm font-mono text-foreground truncate mt-1">{user?.walletAddress?.slice(0, 8)}...</p>
           </div>
@@ -70,7 +77,7 @@ export function AppSidebar() {
             variant="ghost"
             size="sm"
             className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={logout}
+            onClick={handleLogout}
           >
             <LogOut className="w-4 h-4" />
             <span>Logout</span>

@@ -1,6 +1,6 @@
 "use client"
 
-import { motion, useScroll, useTransform } from "framer-motion"
+import { motion } from "framer-motion"
 import { ArrowRight, Zap, TrendingUp, Lock, BarChart3, Shield, Gauge, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -10,24 +10,27 @@ import { useWallet } from "@solana/wallet-adapter-react"
 import { useWalletModal } from "@solana/wallet-adapter-react-ui"
 import { useRouter } from "next/navigation"
 import dynamic from "next/dynamic"
+import DashboardLayout from "@/components/dashboard-layout"
 
-const SolChart = dynamic(() => import("@/components/sol-chart").then((mod) => ({ default: mod.SolChart })), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-full bg-card-bg rounded-lg animate-pulse flex items-center justify-center text-muted-foreground">
-      Loading chart...
-    </div>
-  ),
-})
+const WalletSearch = dynamic(
+  () => import("@/components/wallet-search").then((mod) => ({ default: mod.WalletSearch })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-64 bg-card rounded-lg animate-pulse flex items-center justify-center text-muted-foreground">
+        Loading explorer...
+      </div>
+    ),
+  },
+)
 
 export default function LandingPage() {
   const { user, loginWithWallet } = useAuth()
   const { connected, publicKey } = useWallet()
   const { setVisible } = useWalletModal()
   const router = useRouter()
-  const { scrollY } = useScroll()
-  const opacity = useTransform(scrollY, [0, 300], [1, 0.5])
   const [loggingIn, setLoggingIn] = useState(false)
+  const [walletAddress, setWalletAddress] = useState("")
 
   useEffect(() => {
     if (connected && publicKey && !user) {
@@ -35,7 +38,10 @@ export default function LandingPage() {
         try {
           setLoggingIn(true)
           await loginWithWallet(publicKey.toBase58())
-          setTimeout(() => router.push("/dashboard"), 500)
+          // Don't redirect - stay on landing page with explorer
+          setTimeout(() => {
+            setLoggingIn(false)
+          }, 500)
         } catch (error) {
           console.error("Login failed:", error)
           setLoggingIn(false)
@@ -50,26 +56,22 @@ export default function LandingPage() {
       setVisible(true)
     } else if (publicKey && !user) {
       handleManualLogin()
-    } else if (user) {
-      router.push("/dashboard")
     }
-  }, [connected, publicKey, user, setVisible, router])
+  }, [connected, publicKey, user, setVisible])
 
   const handleManualLogin = async () => {
     if (publicKey) {
       setLoggingIn(true)
       try {
         await loginWithWallet(publicKey.toBase58())
-        setTimeout(() => router.push("/dashboard"), 500)
+        setTimeout(() => {
+          setLoggingIn(false)
+        }, 500)
       } catch (error) {
         console.error("Login failed:", error)
         setLoggingIn(false)
       }
     }
-  }
-
-  if (user) {
-    return null
   }
 
   return (
@@ -126,14 +128,14 @@ export default function LandingPage() {
                   </span>
                 </motion.div>
 
-                <h1 className="text-6xl md:text-7xl font-bold text-balance leading-tight">
+                <h1 className="text-4xl md:text-5xl font-bold text-balance leading-tight">
                   Track Tokens, Monitor{" "}
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-orange-500 to-red-500 animate-pulse">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-orange-500 to-red-500">
                     Wallets, Stay Ahead
                   </span>
                 </h1>
 
-                <p className="text-xl md:text-2xl text-muted-foreground text-balance leading-relaxed font-light">
+                <p className="text-base md:text-lg text-muted-foreground text-balance leading-relaxed font-light">
                   Whether you're a trader seeking emerging opportunities, an investor analyzing market trends, an
                   investigator tracking suspicious activity, or a compliance officer monitoring blockchain transactions
                   — Pifflepath gives you real-time intelligence and actionable insights.
@@ -173,13 +175,13 @@ export default function LandingPage() {
                 ].map((stat, i) => (
                   <motion.div key={i} whileInView={{ scale: 1.05 }} viewport={{ once: true }}>
                     <p className="font-bold text-lg text-primary">{stat.value}</p>
-                    <p className="text-muted-foreground text-xs mt-1">{stat.label}</p>
+                    <p className="text-muted-foreground text-sm mt-1">{stat.label}</p>
                   </motion.div>
                 ))}
               </motion.div>
             </motion.div>
 
-            {/* Right Column - Live Chart */}
+            {/* Right Column - Empty for responsiveness */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -187,20 +189,16 @@ export default function LandingPage() {
               className="relative h-96 md:h-full md:min-h-screen flex items-center justify-center hidden md:flex"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-transparent to-secondary/20 rounded-3xl blur-3xl"></div>
-              <div className="relative w-full h-full max-h-[500px] rounded-2xl border border-card-border bg-card-bg p-6 glass overflow-hidden">
-                <div className="absolute top-4 left-6 z-10">
-                  <p className="text-sm text-muted-foreground">Live SOL/USD</p>
-                  <p className="text-2xl font-bold text-primary mt-1">$150.25</p>
-                </div>
-                <SolChart />
-              </div>
             </motion.div>
           </div>
         </div>
       </section>
 
       {/* Use Cases Section */}
-      <section className="py-20 md:py-32 bg-gradient-to-b from-card-bg/50 to-background border-y border-card-border">
+      <section
+        id="features"
+        className="py-20 md:py-32 bg-gradient-to-b from-card/50 to-background border-y border-border"
+      >
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -209,7 +207,7 @@ export default function LandingPage() {
             className="text-center mb-16"
           >
             <h2 className="text-4xl md:text-5xl font-bold mb-4">Built for Everyone</h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
               From traders to compliance officers, Pifflepath provides the tools you need
             </p>
           </motion.div>
@@ -245,7 +243,7 @@ export default function LandingPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1 }}
-                  className="group p-6 rounded-lg border border-card-border bg-card hover:border-primary/50 transition-all hover:shadow-lg hover:shadow-primary/10 card-brown-hover"
+                  className="group p-6 rounded-lg border border-border bg-card hover:border-primary/50 transition-all hover:shadow-lg hover:shadow-primary/10"
                 >
                   <Icon className="w-8 h-8 text-primary mb-4 group-hover:scale-110 transition-transform" />
                   <h3 className="font-semibold text-lg mb-2">{useCase.title}</h3>
@@ -301,7 +299,7 @@ export default function LandingPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: i * 0.1 }}
                   viewport={{ once: true }}
-                  className="group p-8 rounded-lg border border-card-border bg-card hover:border-primary/50 transition-all hover:shadow-lg hover:shadow-primary/10 card-brown-hover"
+                  className="group p-8 rounded-lg border border-card-border bg-card hover:border-primary/50 transition-all hover:shadow-lg hover:shadow-primary/10"
                 >
                   <Icon className="w-10 h-10 text-primary mb-4 group-hover:scale-110 transition-transform" />
                   <h3 className="font-semibold text-2xl mb-3">{feature.title}</h3>
@@ -337,8 +335,53 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Pricing Preview Section */}
+      {/* Explorer Preview Section */}
       <section className="py-20 md:py-32 bg-card-bg/50">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-4xl md:text-5xl font-bold mb-4">Explore Wallets Now</h2>
+            <p className="text-xl text-muted-foreground mb-8">
+              Start tracking wallets instantly—no sign-up required. Get started exploring the Solana blockchain
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="max-w-4xl mx-auto"
+          >
+            <div className="bg-card border border-border rounded-lg p-8 space-y-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Search any Solana wallet</h3>
+                <WalletSearch onAddressSubmit={(address) => setWalletAddress(address)} />
+              </div>
+
+              {walletAddress && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="border-t border-border pt-6 animate-fade-in"
+                >
+                  <h3 className="text-sm font-semibold mb-4">Wallet Details for {walletAddress.slice(0, 8)}...</h3>
+                  <div className="bg-background rounded-lg p-4 max-h-[400px] overflow-y-auto">
+                    <DashboardLayout walletAddress={walletAddress} />
+                  </div>
+                </motion.div>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Pricing Preview Section */}
+      <section className="py-20 md:py-32 bg-gradient-to-b from-background to-card-bg/50">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}

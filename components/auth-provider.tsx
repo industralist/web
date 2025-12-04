@@ -3,6 +3,8 @@
 import type React from "react"
 
 import { createContext, useContext, useEffect, useState } from "react"
+import { useWallet } from "@solana/wallet-adapter-react"
+import { useRouter } from "next/navigation"
 
 interface AuthUser {
   id: string
@@ -22,6 +24,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
+  const { disconnect } = useWallet()
+  const router = useRouter()
 
   useEffect(() => {
     // Check for stored wallet address
@@ -61,8 +65,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const logout = async () => {
+    try {
+      await disconnect()
+    } catch (error) {
+      console.error("Failed to disconnect wallet:", error)
+    }
+
     setUser(null)
     localStorage.removeItem("wallet_address")
+    router.push("/")
   }
 
   return <AuthContext.Provider value={{ user, loading, loginWithWallet, logout }}>{children}</AuthContext.Provider>

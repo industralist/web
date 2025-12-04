@@ -27,3 +27,5 @@ export function DashboardLayout({ walletAddress }: DashboardLayoutProps) {
     </div>
   )
 }
+
+export default DashboardLayout
