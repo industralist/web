@@ -11,6 +11,8 @@ import { useWalletModal } from "@solana/wallet-adapter-react-ui"
 import { useRouter } from "next/navigation"
 import dynamic from "next/dynamic"
 import DashboardLayout from "@/components/dashboard-layout"
+import { AnimatedLine } from "@/components/animated-line"
+import { RotatingGlobe } from "@/components/rotating-globe"
 
 const WalletSearch = dynamic(
   () => import("@/components/wallet-search").then((mod) => ({ default: mod.WalletSearch })),
@@ -76,6 +78,8 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-hidden">
+      <AnimatedLine />
+
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center overflow-hidden pt-20">
         {/* Animated Background Elements */}
@@ -181,14 +185,13 @@ export default function LandingPage() {
               </motion.div>
             </motion.div>
 
-            {/* Right Column - Empty for responsiveness */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.2 }}
               className="relative h-96 md:h-full md:min-h-screen flex items-center justify-center hidden md:flex"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-transparent to-secondary/20 rounded-3xl blur-3xl"></div>
+              <RotatingGlobe />
             </motion.div>
           </div>
         </div>
