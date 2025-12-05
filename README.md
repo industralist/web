@@ -291,7 +291,7 @@ Need help? We're here for you:
 
 - **Email:** support@pifflepath.com
 - **Discord:** [Join our community](https://discord.gg/pifflepath)
-- **GitHub Issues:** [Report bugs or suggest features](https://github.com/industralist/pifflepath_api/issues)
+- **GitHub Issues:** [Report bugs or suggest features](https://github.com/industralist/pifflepath_api/)
 - **Documentation:** [Visit our docs](https://v0-webmain-2.vercel.app/docs)
 
 ## 📜 License
