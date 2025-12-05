@@ -93,7 +93,7 @@ export function Footer() {
             </Link>
 
             {/* GitHub Icon */}
-            <Link href="https://github.com/industralist/pifflepath_api" className="text-gray-400 hover:text-white transition" aria-label="GitHub">
+            <Link href="https://github.com/industralist/piffle_api" className="text-gray-400 hover:text-white transition" aria-label="GitHub">
               <Github className="w-5 h-5" />
             </Link>
 

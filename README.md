@@ -291,7 +291,7 @@ Need help? We're here for you:
 
 - **Email:** support@pifflepath.com
 - **Discord:** [Join our community](https://discord.gg/pifflepath)
-- **GitHub Issues:** [Report bugs or suggest features](https://github.com/industralist/pifflepath_api/)
+- **GitHub Issues:** [Report bugs or suggest features](https://github.com/industralist/piffle_api/)
 - **Documentation:** [Visit our docs](https://v0-webmain-2.vercel.app/docs)
 
 ## 📜 License
@@ -302,4 +302,4 @@ This SDK is licensed under the MIT License. See the LICENSE file in the reposito
 
 **Made with ❤️ by the Pifflepath Team**
 
-**Repository:** https://github.com/industralist/pifflepath_api
+**Repository:** https://github.com/industralist/piffle_api
