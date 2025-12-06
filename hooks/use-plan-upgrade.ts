@@ -4,6 +4,7 @@ import { useState, useCallback } from "react"
 import { useWallet } from "@solana/wallet-adapter-react"
 import { Connection, PublicKey, Transaction, clusterApiUrl } from "@solana/web3.js"
 import { createTransferInstruction, getAssociatedTokenAddress } from "@solana/spl-token"
+import { confirmTransactionWithPolling } from "@/lib/confirm-transaction"
 
 export function usePlanUpgrade() {
   const { connected, publicKey, sendTransaction, connect } = useWallet()
@@ -11,12 +12,11 @@ export function usePlanUpgrade() {
   const [successPlan, setSuccessPlan] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const connection = new Connection(clusterApiUrl("mainnet-beta"), "confirmed")
+  const network = (process.env.NEXT_PUBLIC_SOLANA_NETWORK || "devnet") as "devnet" | "mainnet-beta"
+  const connection = new Connection(clusterApiUrl(network), "confirmed")
+  const USDT_MINT = process.env.NEXT_PUBLIC_USDT_MINT || "EPjFWaLb3oCRY59QuU9CLYy37qjodnKwDvE5tqKDqaP"
 
   const merchantAddress = new PublicKey(`${process.env.NEXT_PUBLIC_SOLANA_PAYMENT_DESTINATION}`)
-
-  // USDT token mint
-  const USDT_MINT = "EPjFWaLb3oCRY59QuU9CLYy37qjodnKwDvE5tqKDqaP"
 
   const upgradePlan = useCallback(
     async (plan: "Pro" | "Pro+") => {
@@ -62,7 +62,7 @@ export function usePlanUpgrade() {
         tx.feePayer = publicKey
 
         const signature = await sendTransaction(tx, connection)
-        await connection.confirmTransaction(signature, "confirmed")
+        await confirmTransactionWithPolling(connection, signature)
 
         // Persist plan
         localStorage.setItem("user_plan", plan)

@@ -9,6 +9,7 @@ import { useAuth } from "@/components/auth-provider"
 import { Loader2 } from "lucide-react"
 import { useConnection, useWallet } from "@solana/wallet-adapter-react"
 import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js"
+import { confirmTransactionWithPolling } from "@/lib/confirm-transaction"
 
 interface PaymentFormProps {
   planType: "monthly" | "yearly"
@@ -51,7 +52,7 @@ export function PaymentForm({ planType }: PaymentFormProps) {
       )
 
       const signature = await sendTransaction(transaction, connection)
-      await connection.confirmTransaction(signature, "confirmed")
+      await confirmTransactionWithPolling(connection, signature)
 
       // Record payment in database
       const response = await fetch("/api/payments/create", {

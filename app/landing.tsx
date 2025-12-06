@@ -349,7 +349,7 @@ export default function LandingPage() {
           >
             <h2 className="text-4xl md:text-5xl font-bold mb-4">Explore Wallets Now</h2>
             <p className="text-xl text-muted-foreground mb-8">
-              Start tracking wallets instantly—no sign-up required. Get started exploring Blockchain Transactions and Wallets
+              Start tracking wallets instantly—no sign-up required. Get started exploring the Solana blockchain
             </p>
           </motion.div>
 

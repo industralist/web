@@ -5,7 +5,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Check, CreditCard } from "lucide-react"
+import { Check, CreditCard, RefreshCw } from "lucide-react"
 
 interface Subscription {
   id: string
@@ -30,6 +30,7 @@ export default function SubscriptionsPage() {
   const router = useRouter()
   const [subscription, setSubscription] = useState<Subscription | null>(null)
   const [payments, setPayments] = useState<Payment[]>([])
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   useEffect(() => {
     if (!loading && !user) {
@@ -44,6 +45,20 @@ export default function SubscriptionsPage() {
     }
   }, [user])
 
+  useEffect(() => {
+    const handleSubscriptionUpdate = (event: Event) => {
+      const customEvent = event as CustomEvent
+      if (customEvent.detail) {
+        setSubscription(customEvent.detail)
+        // Also refresh payments when subscription updates
+        fetchPayments()
+      }
+    }
+
+    window.addEventListener("subscriptionUpdated", handleSubscriptionUpdate)
+    return () => window.removeEventListener("subscriptionUpdated", handleSubscriptionUpdate)
+  }, [])
+
   const fetchSubscription = async () => {
     try {
       const res = await fetch("/api/auth/subscription", {
@@ -57,9 +72,23 @@ export default function SubscriptionsPage() {
   }
 
   const fetchPayments = async () => {
-    // This would need a new API endpoint to fetch payments
-    // For now, we'll show mock data
-    setPayments([])
+    if (!user) return
+    try {
+      const res = await fetch(`/api/payments/history?userId=${user.id}`)
+      const data = await res.json()
+      if (data.payments) {
+        setPayments(data.payments)
+      }
+    } catch (error) {
+      console.error("Error fetching payments:", error)
+    }
+  }
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    await fetchSubscription()
+    await fetchPayments()
+    setIsRefreshing(false)
   }
 
   if (loading) {
@@ -75,9 +104,21 @@ export default function SubscriptionsPage() {
   return (
     <main className="container mx-auto px-4 py-8 space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-4xl font-bold mb-2">Subscriptions</h1>
-        <p className="text-muted-foreground">Manage your subscription and billing information.</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-4xl font-bold mb-2">Subscriptions</h1>
+          <p className="text-muted-foreground">Manage your subscription and billing information.</p>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className="gap-2 bg-transparent"
+        >
+          <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
+          Refresh
+        </Button>
       </div>
 
       {/* Current Plan */}

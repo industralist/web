@@ -3,7 +3,7 @@
 import { useAuth } from "@/components/auth-provider"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Wallet, Key, CreditCard, ArrowRight } from "lucide-react"
+import { Wallet, Key, CreditCard, ArrowRight, RefreshCw } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
@@ -21,6 +21,7 @@ export default function DashboardPage() {
   const router = useRouter()
   const [subscription, setSubscription] = useState<Subscription | null>(null)
   const [stats, setStats] = useState({ requests: 0, apiKeys: 0 })
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   useEffect(() => {
     if (!loading && !user) {
@@ -34,6 +35,18 @@ export default function DashboardPage() {
       fetchStats()
     }
   }, [user])
+
+  useEffect(() => {
+    const handleSubscriptionUpdate = (event: Event) => {
+      const customEvent = event as CustomEvent
+      if (customEvent.detail) {
+        setSubscription(customEvent.detail)
+      }
+    }
+
+    window.addEventListener("subscriptionUpdated", handleSubscriptionUpdate)
+    return () => window.removeEventListener("subscriptionUpdated", handleSubscriptionUpdate)
+  }, [])
 
   const fetchSubscription = async () => {
     try {
@@ -59,6 +72,13 @@ export default function DashboardPage() {
     }
   }
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    await fetchSubscription()
+    await fetchStats()
+    setIsRefreshing(false)
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -71,7 +91,6 @@ export default function DashboardPage() {
 
   const truncatedAddress = `${user.walletAddress.slice(0, 6)}...${user.walletAddress.slice(-6)}`
 
-  // Mock usage data
   const usageData = [
     { day: "Mon", requests: 4000 },
     { day: "Tue", requests: 3000 },
@@ -85,9 +104,21 @@ export default function DashboardPage() {
   return (
     <main className="container mx-auto px-4 py-8 space-y-8">
       {/* Welcome Section */}
-      <div>
-        <h1 className="text-4xl font-bold mb-2">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome back! Here's your account overview.</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-4xl font-bold mb-2">Dashboard</h1>
+          <p className="text-muted-foreground">Welcome back! Here's your account overview.</p>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className="gap-2 bg-transparent"
+        >
+          <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
+          Refresh
+        </Button>
       </div>
 
       {/* Profile & Subscription Cards */}
