@@ -324,10 +324,10 @@ export default function PricingPage() {
 
         <div className="flex flex-col md:flex-row justify-center gap-8 mb-12">
           {/* Billing Period Toggle */}
-          <div className="inline-flex items-center gap-4 p-1 bg-card border border-card-border rounded-lg justify-self-center">
+          <div className="inline-flex items-center gap-1 p-1 bg-card border border-card-border rounded-full justify-self-center">
             <button
               onClick={() => setBillingPeriod("monthly")}
-              className={`px-6 py-2 rounded transition-all font-medium ${
+              className={`px-4 py-1.5 rounded-full transition-all font-medium text-sm ${
                 billingPeriod === "monthly"
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground"
@@ -337,7 +337,7 @@ export default function PricingPage() {
             </button>
             <button
               onClick={() => setBillingPeriod("yearly")}
-              className={`px-6 py-2 rounded transition-all font-medium ${
+              className={`px-4 py-1.5 rounded-full transition-all font-medium text-sm ${
                 billingPeriod === "yearly"
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground"
@@ -348,20 +348,20 @@ export default function PricingPage() {
           </div>
 
           {/* Currency Type Toggle */}
-          <div className="inline-flex items-center gap-4 p-1 bg-card border border-card-border rounded-lg">
+          <div className="inline-flex items-center gap-1 p-1 bg-card border border-card-border rounded-full">
             <button
               onClick={() => setCurrencyType("usdt")}
-              className={`px-6 py-2 rounded transition-all font-medium ${
+              className={`px-4 py-1.5 rounded-full transition-all font-medium text-sm ${
                 currencyType === "usdt"
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              USDT (Default)
+              USDT
             </button>
             <button
               onClick={() => setCurrencyType("sol")}
-              className={`px-6 py-2 rounded transition-all font-medium ${
+              className={`px-4 py-1.5 rounded-full transition-all font-medium text-sm ${
                 currencyType === "sol"
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground"
@@ -444,16 +444,16 @@ export default function PricingPage() {
                         <span className="text-4xl font-bold">--</span>
                       </div>
                     ) : (
-                      <>
-                        <span className="text-4xl font-bold">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-3xl font-bold">
                           {currencyType === "sol" ? plan.price.toFixed(4) : plan.price}
                         </span>
-                        <span className="ml-2 text-xl font-semibold">{plan.currencyDisplay}</span>
-                      </>
+                        <span className="text-sm font-semibold text-muted-foreground">{plan.currencyDisplay}</span>
+                        <span className="text-xs text-muted-foreground ml-auto">
+                          /{billingPeriod === "monthly" ? "mo" : "yr"}
+                        </span>
+                      </div>
                     )}
-                    <p className="text-muted-foreground text-sm">
-                      per {billingPeriod === "monthly" ? "month" : "year"}
-                    </p>
                   </div>
 
                   <div className="mb-6 p-3 bg-card rounded-lg">
