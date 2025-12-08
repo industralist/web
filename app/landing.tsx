@@ -76,6 +76,28 @@ export default function LandingPage() {
     }
   }
 
+  const handleHeroCtaClick = useCallback(() => {
+    if (!connected) {
+      setVisible(true)
+    } else if (user) {
+      router.push("/dashboard")
+    } else if (publicKey && !user) {
+      handleManualLogin()
+    }
+  }, [connected, publicKey, user, setVisible])
+
+  const getHeroCTAText = () => {
+    if (!connected) return "Connect Wallet & Get Started"
+    if (user) return "Go to Dashboard"
+    return "Complete Login"
+  }
+
+  const getBottomCTAText = () => {
+    if (!connected) return "Connect Wallet Now"
+    if (user) return "View Your Dashboard"
+    return "Complete Login"
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground overflow-hidden">
       <AnimatedLine />
@@ -151,10 +173,10 @@ export default function LandingPage() {
                   <Button
                     size="lg"
                     className="bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-700 text-white group px-8 py-6 text-lg rounded-lg"
-                    onClick={handleConnectWallet}
+                    onClick={handleHeroCtaClick}
                     disabled={loggingIn}
                   >
-                    {loggingIn ? "Logging in..." : "Connect Wallet & Get Started"}{" "}
+                    {loggingIn ? "Logging in..." : getHeroCTAText()}{" "}
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </motion.div>
@@ -470,16 +492,18 @@ export default function LandingPage() {
           >
             <h2 className="text-4xl md:text-5xl font-bold">Ready to Get Started?</h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Join hundreds of traders, investors, analysts, and compliance officers using Pifflepath today.
+              {connected && user
+                ? "Access your dashboard to track blockchain data in real-time."
+                : "Join hundreds of traders, investors, analysts, and compliance officers using Pifflepath today."}
             </p>
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button
                 size="lg"
                 className="bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-700 text-white group px-8 py-6 text-lg"
-                onClick={handleConnectWallet}
+                onClick={handleHeroCtaClick}
                 disabled={loggingIn}
               >
-                {loggingIn ? "Logging in..." : "Connect Wallet Now"}{" "}
+                {loggingIn ? "Logging in..." : getBottomCTAText()}{" "}
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Button>
             </motion.div>

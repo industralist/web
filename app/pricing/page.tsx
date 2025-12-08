@@ -548,20 +548,14 @@ export default function PricingPage() {
             <Card className="p-4">
               <h3 className="font-semibold mb-2">How much can I save with yearly billing?</h3>
               <p className="text-muted-foreground text-sm">
-                With yearly billing, you get great value. Pro is $20/year and Pro+ is $50/year.
+                With yearly billing, you get great value. Pro is $3200/year(getting 1 month for free) and Pro+ is $5400/year (getting 1 month+ for free).
               </p>
             </Card>
             <Card className="p-4">
               <h3 className="font-semibold mb-2">How are SOL prices calculated?</h3>
               <p className="text-muted-foreground text-sm">
-                SOL prices are dynamically calculated using the current SOL/USD exchange rate from CoinGecko, fetched in
-                real-time with 1-minute caching.
-              </p>
-            </Card>
-            <Card className="p-4">
-              <h3 className="font-semibold mb-2">Is there a refund policy?</h3>
-              <p className="text-muted-foreground text-sm">
-                We offer a 7-day money-back guarantee. Contact support if you have any issues.
+                SOL prices are dynamically calculated using the current SOL/USD exchange rate from jupiter, fetched in
+                real-time.
               </p>
             </Card>
           </div>
