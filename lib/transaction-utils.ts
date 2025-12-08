@@ -117,7 +117,7 @@ export function validatePaymentParams(
   recipientAddress: string,
   plan: "Pro" | "Pro+",
 ): { valid: boolean; error?: string } {
-  const expectedAmount = plan === "Pro" ? 300 : 500
+  const expectedAmount = plan === "Pro" ? 2 : 5
 
   if (amount !== expectedAmount) {
     return {

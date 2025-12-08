@@ -36,9 +36,12 @@ export function usePlanUpgrade() {
         setLoading(true)
         setSuccessPlan(null)
 
-        // USDT amounts (300 or 500 with 6 decimals)
-        const usdtAmount = plan === "Pro" ? 300 : 500
+        const proPriceEnv = Number.parseFloat(process.env.NEXT_PUBLIC_PRO_PRICE_MONTHLY || "2")
+        const proPlusPriceEnv = Number.parseFloat(process.env.NEXT_PUBLIC_PROPLUS_PRICE_MONTHLY || "5")
+        const usdtAmount = plan === "Pro" ? proPriceEnv : proPlusPriceEnv
         const tokenAmount = usdtAmount * 1_000_000
+
+        console.log("[v0] Upgrading plan:", plan, "amount:", usdtAmount, "USDT")
 
         const usdtMint = new PublicKey(USDT_MINT)
 

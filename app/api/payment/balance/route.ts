@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { Connection, PublicKey } from "@solana/web3.js"
+import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js"
 import { getAssociatedTokenAddress } from "@solana/spl-token"
 import { detectNetworkFromRpc } from "@/lib/sol-price"
 
@@ -15,9 +15,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing public key" }, { status: 400 })
     }
 
-    if (tokenType !== "usdt") {
-      console.error("[v0] Only USDT is supported")
-      return NextResponse.json({ error: "Only USDT is supported" }, { status: 400 })
+    if (tokenType !== "usdt" && tokenType !== "sol") {
+      console.error("[v0] Invalid token type:", tokenType)
+      return NextResponse.json({ error: "Only USDT and SOL are supported" }, { status: 400 })
     }
 
     if (!process.env.HELIUS_RPC_URL) {
@@ -25,16 +25,32 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "RPC not configured" }, { status: 500 })
     }
 
-    if (!process.env.NEXT_PUBLIC_USDT_MINT) {
-      console.error("[v0] Missing NEXT_PUBLIC_USDT_MINT")
-      return NextResponse.json({ error: "USDT mint not configured" }, { status: 500 })
-    }
-
     const detectedNetwork = detectNetworkFromRpc(process.env.HELIUS_RPC_URL)
     console.log("[v0] Detected network for balance check:", detectedNetwork)
 
     const connection = new Connection(process.env.HELIUS_RPC_URL, "confirmed")
     const userPublicKey = new PublicKey(publicKey)
+
+    if (tokenType === "sol") {
+      try {
+        const balance = await connection.getBalance(userPublicKey)
+        const solBalance = balance / LAMPORTS_PER_SOL
+        console.log("[v0] SOL balance:", solBalance)
+        return NextResponse.json({
+          balance: solBalance,
+          hasAccount: true,
+          message: `You have ${solBalance.toFixed(4)} SOL`,
+        })
+      } catch (error: any) {
+        console.error("[v0] SOL balance check error:", error.message)
+        return NextResponse.json({ error: "Unable to check SOL balance: " + error.message }, { status: 500 })
+      }
+    }
+
+    if (!process.env.NEXT_PUBLIC_USDT_MINT) {
+      console.error("[v0] Missing NEXT_PUBLIC_USDT_MINT")
+      return NextResponse.json({ error: "USDT mint not configured" }, { status: 500 })
+    }
 
     const tokenMint = new PublicKey(process.env.NEXT_PUBLIC_USDT_MINT)
     console.log("[v0] Token mint:", tokenMint.toBase58())

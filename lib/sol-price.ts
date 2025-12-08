@@ -103,36 +103,54 @@ export async function convertUsdToSol(usdAmount: number): Promise<number> {
 }
 
 /**
- * Get dynamic plan prices based on SOL price
+ * Get dynamic plan prices based on SOL price and environment variables
  */
 export async function getDynamicPlanPrices(): Promise<Record<string, { usdt: number; usdc: number; sol: number }>> {
   const solPrice = await getSolPriceUsd()
 
-  const proPriceUsd = 300
-  const proPlusPriceUsd = 500
+  const proMonthlyUsd = Number.parseFloat(process.env.NEXT_PUBLIC_PRO_PRICE_MONTHLY || "2")
+  const proYearlyUsd = Number.parseFloat(process.env.NEXT_PUBLIC_PRO_PRICE_YEARLY || "20")
+  const proPlusMonthlyUsd = Number.parseFloat(process.env.NEXT_PUBLIC_PROPLUS_PRICE_MONTHLY || "5")
+  const proPlusYearlyUsd = Number.parseFloat(process.env.NEXT_PUBLIC_PROPLUS_PRICE_YEARLY || "50")
 
-  // Convert USD to SOL and add buffer
-  const proSolPrice = (proPriceUsd / solPrice) * 1.1
-  const proPlusSolPrice = (proPlusPriceUsd / solPrice) * 1.1
+  // Convert USD to SOL and add buffer for monthly plans (yearly kept as-is since pre-calculated)
+  const proSolPriceMonthly = (proMonthlyUsd / solPrice) * 1.1
+  const proSolPriceYearly = (proYearlyUsd / solPrice) * 1.1
+  const proPlusSolPriceMonthly = (proPlusMonthlyUsd / solPrice) * 1.1
+  const proPlusSolPriceYearly = (proPlusYearlyUsd / solPrice) * 1.1
 
   console.log("[v0] Dynamic plan prices calculated:", {
     solPrice,
-    proUsd: proPriceUsd,
-    proSol: proSolPrice,
-    proPlusUsd: proPlusPriceUsd,
-    proPlusSol: proPlusSolPrice,
+    proMonthlyUsd,
+    proSolPriceMonthly,
+    proYearlyUsd,
+    proSolPriceYearly,
+    proPlusMonthlyUsd,
+    proPlusSolPriceMonthly,
+    proPlusYearlyUsd,
+    proPlusSolPriceYearly,
   })
 
   return {
-    Pro: {
-      usdt: proPriceUsd,
-      usdc: proPriceUsd,
-      sol: proSolPrice,
+    "Pro-Monthly": {
+      usdt: proMonthlyUsd,
+      usdc: 0,
+      sol: proSolPriceMonthly,
     },
-    "Pro+": {
-      usdt: proPlusPriceUsd,
-      usdc: proPlusPriceUsd,
-      sol: proPlusSolPrice,
+    "Pro-Yearly": {
+      usdt: proYearlyUsd,
+      usdc: 0,
+      sol: proSolPriceYearly,
+    },
+    "Pro+-Monthly": {
+      usdt: proPlusMonthlyUsd,
+      usdc: 0,
+      sol: proPlusSolPriceMonthly,
+    },
+    "Pro+-Yearly": {
+      usdt: proPlusYearlyUsd,
+      usdc: 0,
+      sol: proPlusSolPriceYearly,
     },
   }
 }

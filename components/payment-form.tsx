@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -8,54 +8,84 @@ import { Label } from "@/components/ui/label"
 import { useAuth } from "@/components/auth-provider"
 import { Loader2 } from "lucide-react"
 import { useConnection, useWallet } from "@solana/wallet-adapter-react"
-import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js"
+import { Transaction } from "@solana/web3.js"
 import { confirmTransactionWithPolling } from "@/lib/confirm-transaction"
 
 interface PaymentFormProps {
   planType: "monthly" | "yearly"
+  planId: string
 }
 
-export function PaymentForm({ planType }: PaymentFormProps) {
+export function PaymentForm({ planType, planId }: PaymentFormProps) {
   const { user } = useAuth()
   const { connection } = useConnection()
   const { publicKey, sendTransaction } = useWallet()
-  const [tokenType, setTokenType] = useState<"sol" | "usdt" | "usdc">("sol")
+  const [tokenType, setTokenType] = useState<"sol">("sol")
   const [loading, setLoading] = useState(false)
+  const [prices, setPrices] = useState<Record<string, { usdt: number; usdc: number; sol: number }> | null>(null)
 
-  const pricing: Record<"monthly" | "yearly", Record<"sol" | "usdt" | "usdc", { usd: number; amount: number }>> = {
-    monthly: {
-      sol: { usd: 49, amount: 0.25 },
-      usdt: { usd: 49, amount: 49 },
-      usdc: { usd: 49, amount: 49 },
-    },
-    yearly: {
-      sol: { usd: 490, amount: 2.5 },
-      usdt: { usd: 490, amount: 490 },
-      usdc: { usd: 490, amount: 490 },
-    },
+  useEffect(() => {
+    const fetchPrices = async () => {
+      try {
+        const res = await fetch("/api/payment/prices")
+        const data = await res.json()
+        setPrices(data.prices)
+      } catch (error) {
+        console.error("[v0] Error fetching prices:", error)
+      }
+    }
+    fetchPrices()
+  }, [])
+
+  if (!prices) {
+    return <div>Loading prices...</div>
   }
 
-  const price = pricing[planType][tokenType]
+  const price = prices[planId]?.[tokenType]
+
+  if (!price) {
+    return <div>Plan not found</div>
+  }
 
   const handlePayment = async () => {
-    if (!publicKey || !user) return
+    if (!publicKey || !user) {
+      alert("Please connect your wallet first")
+      return
+    }
 
     setLoading(true)
     try {
-      // Create transaction for payment
-      const transaction = new Transaction().add(
-        SystemProgram.transfer({
-          fromPubkey: publicKey,
-          toPubkey: new PublicKey(process.env.NEXT_PUBLIC_SOLANA_PAYMENT_DESTINATION!),
-          lamports: Math.floor(price.amount * 1e9),
-        }),
-      )
+      console.log("[v0] Starting payment with plan:", planId, "amount:", price.amount, "token:", tokenType)
 
-      const signature = await sendTransaction(transaction, connection)
+      const createRes = await fetch("/api/payment/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          publicKey: publicKey.toBase58(),
+          plan: planId,
+          tokenType,
+        }),
+      })
+
+      if (!createRes.ok) {
+        const error = await createRes.json()
+        throw new Error(error.error || "Failed to create transaction")
+      }
+
+      const { transaction: txBase64, blockhash } = await createRes.json()
+      console.log("[v0] Transaction created, sending to wallet...")
+
+      // Deserialize and sign
+      const tx = Transaction.from(Buffer.from(txBase64, "base64"))
+
+      const signature = await sendTransaction(tx, connection)
+      console.log("[v0] Transaction signature:", signature)
+
       await confirmTransactionWithPolling(connection, signature)
+      console.log("[v0] Transaction confirmed")
 
       // Record payment in database
-      const response = await fetch("/api/payments/create", {
+      const payRes = await fetch("/api/payments/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -63,17 +93,17 @@ export function PaymentForm({ planType }: PaymentFormProps) {
           planType,
           tokenType,
           tokenAmount: price.amount,
-          amountUsd: price.usd,
+          amountUsd: prices[planId].usdt, // Use USDT as USD reference
           transactionHash: signature,
         }),
       })
 
-      if (response.ok) {
+      if (payRes.ok) {
         alert("Payment successful!")
       }
-    } catch (error) {
-      console.error("Payment failed:", error)
-      alert("Payment failed. Please try again.")
+    } catch (error: any) {
+      console.error("[v0] Payment error:", error)
+      alert(`Payment failed: ${error.message}`)
     } finally {
       setLoading(false)
     }
@@ -83,22 +113,17 @@ export function PaymentForm({ planType }: PaymentFormProps) {
     <Card className="p-6 space-y-6">
       <div>
         <h3 className="text-lg font-semibold mb-4">Select Payment Token</h3>
-        <RadioGroup value={tokenType} onValueChange={(v: any) => setTokenType(v)}>
+        <RadioGroup value={tokenType} onValueChange={setTokenType}>
           <div className="space-y-3">
-            {(["sol", "usdt", "usdc"] as const).map((token) => (
-              <div
-                key={token}
-                className="flex items-center space-x-3 p-3 border border-card-border rounded-lg cursor-pointer hover:bg-card-bg"
-              >
-                <RadioGroupItem value={token} id={token} />
-                <Label htmlFor={token} className="flex-1 cursor-pointer">
-                  <div className="font-semibold uppercase">{token}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {price.amount} {token.toUpperCase()} ≈ ${price.usd}
-                  </div>
-                </Label>
-              </div>
-            ))}
+            <div className="flex items-center space-x-3 p-3 border border-card-border rounded-lg cursor-pointer hover:bg-card-bg">
+              <RadioGroupItem value="sol" id="sol" />
+              <Label htmlFor="sol" className="flex-1 cursor-pointer">
+                <div className="font-semibold uppercase">SOL</div>
+                <div className="text-sm text-muted-foreground">
+                  {price.amount.toFixed(4)} SOL ≈ ${prices[planId].usdt}
+                </div>
+              </Label>
+            </div>
           </div>
         </RadioGroup>
       </div>
@@ -110,7 +135,7 @@ export function PaymentForm({ planType }: PaymentFormProps) {
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Total</span>
-          <span className="text-lg font-bold text-primary">${price.usd}</span>
+          <span className="text-lg font-bold text-primary">${prices[planId].usdt}</span>
         </div>
       </div>
 
@@ -125,7 +150,7 @@ export function PaymentForm({ planType }: PaymentFormProps) {
             Processing...
           </>
         ) : (
-          `Pay ${price.amount} ${tokenType.toUpperCase()}`
+          `Pay ${price.amount.toFixed(4)} SOL`
         )}
       </Button>
     </Card>

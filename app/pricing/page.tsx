@@ -40,8 +40,8 @@ const PLANS: Plan[] = [
   },
   {
     name: "Pro",
-    monthlyPrice: 300,
-    yearlyPrice: 3200,
+    monthlyPrice: Number.parseFloat(process.env.NEXT_PUBLIC_PRO_PRICE_MONTHLY || "2"),
+    yearlyPrice: Number.parseFloat(process.env.NEXT_PUBLIC_PRO_PRICE_YEARLY || "20"),
     requests: 3000,
     features: [
       "3,000 requests per day",
@@ -55,8 +55,8 @@ const PLANS: Plan[] = [
   },
   {
     name: "Pro+",
-    monthlyPrice: 500,
-    yearlyPrice: 5400,
+    monthlyPrice: Number.parseFloat(process.env.NEXT_PUBLIC_PROPLUS_PRICE_MONTHLY || "5"),
+    yearlyPrice: Number.parseFloat(process.env.NEXT_PUBLIC_PROPLUS_PRICE_YEARLY || "50"),
     requests: 10000,
     features: [
       "10,000 requests per day",
@@ -119,21 +119,22 @@ export default function PricingPage() {
       return
     }
 
+    const planApiKey = `${plan.name}-${billingPeriod === "monthly" ? "Monthly" : "Yearly"}`
     const planKey = `${plan.name}-${billingPeriod}`
     setLoadingPlans((prev) => new Set([...prev, planKey]))
     setPaymentStatus({ status: "pending", message: "Opening wallet..." })
     const toastId = toast.loading("Opening wallet...")
 
     try {
-      console.log("[v0] Creating payment for plan:", plan.name, "price:", usdPrice, "currency:", currencyType)
+      console.log("[v0] Creating payment for plan:", planApiKey, "price:", usdPrice, "currency:", currencyType)
 
       const createResponse = await fetch("/api/payment/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           publicKey: publicKey.toBase58(),
-          plan: plan.name,
-          currencyType,
+          plan: planApiKey,
+          tokenType: currencyType,
         }),
       })
 
@@ -165,12 +166,7 @@ export default function PricingPage() {
       let signature: string
 
       try {
-        signature = await Promise.race([
-          sendTransaction(tx, connection),
-          new Promise<string>((_, reject) => {
-            setTimeout(() => reject(new Error("Wallet did not respond within 30 seconds")), 30000)
-          }),
-        ])
+        signature = await sendTransaction(tx, connection)
 
         console.log("[v0] Transaction sent with signature:", signature)
         setPaymentStatus({ transactionHash: signature, status: "pending", message: "Confirming on blockchain..." })
@@ -209,10 +205,7 @@ export default function PricingPage() {
       toast.loading("Confirming on blockchain...")
 
       try {
-        const confirmResult = await Promise.race([
-          confirmTransactionWithPolling(connection, signature),
-          new Promise((_, reject) => setTimeout(() => reject(new Error("Confirmation timeout")), 60000)),
-        ])
+        await confirmTransactionWithPolling(connection, signature)
 
         console.log("[v0] Transaction confirmed on blockchain")
         setPaymentStatus({ transactionHash: signature, status: "pending", message: "Recording payment..." })
@@ -236,7 +229,7 @@ export default function PricingPage() {
           const errorData = await dbResponse.json()
           console.error("[v0] Payment recording failed:", errorData)
           toast.dismiss(toastId)
-          toast.warning("Transaction confirmed! Syncing subscription...")
+          toast.success(`Payment confirmed on blockchain!`)
           setPaymentStatus({
             transactionHash: signature,
             status: "confirmed",
@@ -268,13 +261,56 @@ export default function PricingPage() {
         }, 1500)
       } catch (confirmError: any) {
         console.error("[v0] Confirmation error:", confirmError)
+        console.log("[v0] Attempting to record payment despite confirmation error...")
+
+        try {
+          const tokenAmount = currencyType === "sol" ? solPrices[plan.name] || 0 : usdPrice
+
+          const dbResponse = await fetch("/api/payments/create", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userId: user.id,
+              planType: billingPeriod,
+              tokenType: currencyType,
+              tokenAmount: tokenAmount,
+              amountUsd: usdPrice,
+              transactionHash: signature,
+            }),
+          })
+
+          if (dbResponse.ok) {
+            console.log("[v0] Payment recorded successfully despite confirmation delay")
+            toast.dismiss(toastId)
+            toast.success(`Payment confirmed! Subscription updated.`)
+            setPaymentStatus({
+              transactionHash: signature,
+              status: "confirmed",
+              message: "Payment successful!",
+            })
+
+            window.dispatchEvent(new CustomEvent("triggerSubscriptionRefresh"))
+            setTimeout(() => {
+              window.location.href = "/dashboard"
+            }, 1500)
+            return
+          }
+        } catch (recordError) {
+          console.error("[v0] Failed to record payment:", recordError)
+        }
+
         toast.dismiss(toastId)
-        toast.warning("Transaction sent! Confirming on blockchain...")
+        toast.warning("Transaction sent! Your subscription is being activated...")
         setPaymentStatus({
           transactionHash: signature,
           status: "pending",
-          message: "Transaction sent. Confirming...",
+          message: "Transaction sent. Activating subscription...",
         })
+
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent("triggerSubscriptionRefresh"))
+          window.location.href = "/dashboard"
+        }, 3000)
       }
     } catch (error: any) {
       console.error("[v0] Payment error:", error)
@@ -512,7 +548,7 @@ export default function PricingPage() {
             <Card className="p-4">
               <h3 className="font-semibold mb-2">How much can I save with yearly billing?</h3>
               <p className="text-muted-foreground text-sm">
-                With yearly billing, you get great value. Pro is $3,200/year and Pro+ is $5,400/year.
+                With yearly billing, you get great value. Pro is $20/year and Pro+ is $50/year.
               </p>
             </Card>
             <Card className="p-4">

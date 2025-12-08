@@ -18,8 +18,9 @@ export async function POST(req: NextRequest) {
 
     const { data: existingPayment, error: dupError } = await supabase
       .from("payments")
-      .select("id")
+      .select("id, status, subscription_id")
       .eq("transaction_hash", transactionHash)
+      .eq("user_id", userId)
       .maybeSingle()
 
     if (existingPayment) {
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
 
     const { data: existingSub, error: queryError } = await supabase
       .from("subscriptions")
-      .select("id, next_billing_date")
+      .select("id, next_billing_date, status")
       .eq("user_id", userId)
       .maybeSingle()
 

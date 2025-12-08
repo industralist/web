@@ -81,10 +81,10 @@ export function RotatingGlobe() {
   }, [])
 
   return (
-    <div className="fixed top-20 md:top-0 right-0 w-64 h-64 md:w-96 md:h-96 opacity-30 md:opacity-40 pointer-events-none z-30">
+    <div className="relative w-64 h-64 md:w-96 md:h-96 opacity-40 md:opacity-50 flex items-center justify-center">
       <canvas
         ref={canvasRef}
-        className="w-full h-full max-w-xs max-h-xs opacity-80"
+        className="w-full h-full opacity-90"
         style={{ filter: "drop-shadow(0 0 40px rgba(255, 107, 59, 0.3))" }}
       />
     </div>
