@@ -24,18 +24,41 @@ export function SubscriptionManager() {
   const [showPayment, setShowPayment] = useState<"monthly" | "yearly" | null>(null)
 
   useEffect(() => {
-    if (user) {
-      fetchSubscription()
-    }
-  }, [user])
+    fetchSubscription()
+  }, [user, publicKey])
 
   const fetchSubscription = async () => {
     try {
-      // Fetch subscription from database
-      // This would typically call an API endpoint
-      setLoading(false)
+      const walletStr = publicKey?.toBase58() || localStorage.getItem("wallet_address") || ""
+      const targetId = walletStr || user?.id || ""
+      if (!targetId) {
+        setLoading(false)
+        return
+      }
+
+      const res = await fetch(`/api/auth/subscription?userId=${targetId}`, {
+        headers: { "x-user-id": user?.id || walletStr, "x-wallet-address": walletStr },
+      })
+      const data = await res.json()
+      if (data.subscription && data.subscription.plan_type && data.subscription.plan_type !== "free") {
+        setSubscription(data.subscription)
+      } else {
+        const stored = localStorage.getItem("user_subscription")
+        if (stored) {
+          const parsed = JSON.parse(stored)
+          if (parsed && parsed.plan_type && parsed.plan_type !== "free") {
+            setSubscription(parsed)
+            setLoading(false)
+            return
+          }
+        }
+        setSubscription(data.subscription)
+      }
     } catch (error) {
       console.error("Failed to fetch subscription:", error)
+      const stored = localStorage.getItem("user_subscription")
+      if (stored) setSubscription(JSON.parse(stored))
+    } finally {
       setLoading(false)
     }
   }
@@ -61,9 +84,9 @@ export function SubscriptionManager() {
             <CheckCircle className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
             <div>
               <h3 className="font-semibold text-lg capitalize">{subscription.plan_type} Plan</h3>
-              <p className="text-sm text-muted-foreground">Billed {subscription.billing_cycle}ly</p>
+              <p className="text-sm text-muted-foreground">Billed {subscription.billing_cycle || "monthly"}</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Next billing: {new Date(subscription.next_billing_date).toLocaleDateString()}
+                Next billing: {subscription.next_billing_date ? new Date(subscription.next_billing_date).toLocaleDateString() : new Date(Date.now() + 30 * 86400000).toLocaleDateString()}
               </p>
             </div>
           </div>

@@ -85,32 +85,48 @@ export default function PricingPage() {
 
   useEffect(() => {
     const fetchActiveSub = async () => {
-      const targetId = user?.walletAddress || user?.id || ""
-      if (!targetId) return
+      const walletStr = publicKey?.toBase58() || localStorage.getItem("wallet_address") || ""
+      const targetId = walletStr || user?.id || ""
+
       try {
-        const res = await fetch(`/api/auth/subscription?userId=${targetId}`, {
-          headers: { "x-user-id": user?.id || "", "x-wallet-address": user?.walletAddress || "" },
-        })
-        const data = await res.json()
-        if (data.subscription?.plan_type) {
-          setActivePlan(data.subscription.plan_type.toLowerCase())
-        } else {
-          const stored = localStorage.getItem("user_subscription")
-          if (stored) {
-            const parsed = JSON.parse(stored)
-            if (parsed?.plan_type) setActivePlan(parsed.plan_type.toLowerCase())
+        if (targetId) {
+          const res = await fetch(`/api/auth/subscription?userId=${targetId}`, {
+            headers: { "x-user-id": user?.id || walletStr, "x-wallet-address": walletStr },
+          })
+          const data = await res.json()
+          if (data.subscription?.plan_type && data.subscription.plan_type !== "free") {
+            setActivePlan(data.subscription.plan_type.toLowerCase())
+            localStorage.setItem("user_subscription", JSON.stringify(data.subscription))
+            return
+          }
+        }
+        const stored = localStorage.getItem("user_subscription")
+        if (stored) {
+          const parsed = JSON.parse(stored)
+          if (parsed?.plan_type && parsed.plan_type !== "free") {
+            setActivePlan(parsed.plan_type.toLowerCase())
+            return
+          }
+        }
+        if (targetId) {
+          const res = await fetch(`/api/auth/subscription?userId=${targetId}`)
+          const data = await res.json()
+          if (data.subscription?.plan_type) {
+            setActivePlan(data.subscription.plan_type.toLowerCase())
           }
         }
       } catch (err) {
         const stored = localStorage.getItem("user_subscription")
         if (stored) {
-          const parsed = JSON.parse(stored)
-          if (parsed?.plan_type) setActivePlan(parsed.plan_type.toLowerCase())
+          try {
+            const parsed = JSON.parse(stored)
+            if (parsed?.plan_type) setActivePlan(parsed.plan_type.toLowerCase())
+          } catch (e) {}
         }
       }
     }
     fetchActiveSub()
-  }, [user])
+  }, [user, publicKey])
 
   const isCurrentPlan = (planName: string) => {
     const target = planName.toLowerCase()

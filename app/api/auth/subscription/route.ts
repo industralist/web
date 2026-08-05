@@ -51,6 +51,11 @@ export async function GET(req: NextRequest) {
             (cleanWallet && s.user_id?.includes(cleanWallet))
         )
         if (sub) {
+          if (!sub.next_billing_date) {
+            const created = new Date(sub.created_at || sub.updated_at || Date.now())
+            const nextDate = new Date(created.getTime() + 30 * 24 * 60 * 60 * 1000)
+            sub.next_billing_date = nextDate.toISOString()
+          }
           return NextResponse.json({ subscription: sub })
         }
       }

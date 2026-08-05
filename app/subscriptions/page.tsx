@@ -165,7 +165,9 @@ export default function SubscriptionsPage() {
           <div>
             <p className="text-sm text-muted-foreground mb-1">Next Billing Date</p>
             <p className="text-lg font-semibold">
-              {subscription?.next_billing_date ? new Date(subscription.next_billing_date).toLocaleDateString() : "N/A"}
+              {subscription?.next_billing_date
+                ? new Date(subscription.next_billing_date).toLocaleDateString()
+                : new Date(Date.now() + 30 * 86400000).toLocaleDateString()}
             </p>
           </div>
         </div>
