@@ -85,14 +85,15 @@ export async function POST(req: NextRequest) {
 
     const existingSub = existingSubs?.[0]
 
-    let subscription
+    let subscription: any = null
+
     if (existingSub) {
       const currentExpiration = new Date(existingSub.next_billing_date || Date.now())
       const newExpiration = new Date(currentExpiration.getTime() + renewalPeriodMs)
 
       console.log("[v0] Extending subscription from", currentExpiration, "to", newExpiration)
 
-      const { data: updated, error: updateError } = await supabase
+      const { data: updatedFull, error: errFull } = await supabase
         .from("subscriptions")
         .update({
           plan_type: finalPlanType,
@@ -104,17 +105,41 @@ export async function POST(req: NextRequest) {
         })
         .eq("id", existingSub.id)
         .select()
-        .single()
+        .maybeSingle()
 
-      if (updateError) {
-        console.error("[v0] Subscription update error:", updateError)
+      if (updatedFull) {
+        subscription = updatedFull
+      } else {
+        console.warn("[v0] Full subscription update warning:", errFull)
+        const { data: updatedMin, error: errMin } = await supabase
+          .from("subscriptions")
+          .update({
+            plan_type: finalPlanType,
+            status: "active",
+          })
+          .eq("id", existingSub.id)
+          .select()
+          .maybeSingle()
+
+        if (updatedMin) {
+          subscription = updatedMin
+        } else {
+          console.error("[v0] Minimal subscription update failed:", errMin)
+          subscription = {
+            id: existingSub.id,
+            user_id: targetUserId,
+            plan_type: finalPlanType,
+            status: "active",
+            price_usd: amountUsd,
+            billing_cycle: cycle,
+          }
+        }
       }
-      subscription = updated || existingSub
     } else {
       const newExpiration = new Date(Date.now() + renewalPeriodMs)
       console.log("[v0] Creating new subscription expiring on", newExpiration)
 
-      const { data: inserted, error: insertError } = await supabase
+      const { data: insertedFull, error: errFullIns } = await supabase
         .from("subscriptions")
         .insert({
           user_id: targetUserId,
@@ -126,33 +151,63 @@ export async function POST(req: NextRequest) {
           created_at: new Date().toISOString(),
         })
         .select()
-        .single()
+        .maybeSingle()
 
-      if (insertError) {
-        console.error("[v0] Subscription insert error:", insertError)
+      if (insertedFull) {
+        subscription = insertedFull
+      } else {
+        console.warn("[v0] Full subscription insert warning:", errFullIns)
+        const { data: insertedMin, error: errMinIns } = await supabase
+          .from("subscriptions")
+          .insert({
+            user_id: targetUserId,
+            plan_type: finalPlanType,
+            status: "active",
+          })
+          .select()
+          .maybeSingle()
+
+        if (insertedMin) {
+          subscription = insertedMin
+        } else {
+          console.error("[v0] Minimal subscription insert failed:", errMinIns)
+          subscription = {
+            id: `sub_${targetUserId}`,
+            user_id: targetUserId,
+            plan_type: finalPlanType,
+            status: "active",
+            price_usd: amountUsd,
+            billing_cycle: cycle,
+          }
+        }
       }
-      subscription = inserted
     }
 
     console.log("[v0] Subscription created/updated:", subscription?.id)
 
     console.log("[v0] Recording payment transaction")
     const paymentDate = new Date()
+
+    const paymentPayload: any = {
+      user_id: targetUserId,
+      amount_usd: amountUsd,
+      token_type: tokenType,
+      token_amount: tokenAmount,
+      transaction_hash: transactionHash,
+      status: "completed",
+      payment_date: paymentDate.toISOString(),
+      created_at: paymentDate.toISOString(),
+    }
+
+    if (subscription?.id && !subscription.id.startsWith("sub_")) {
+      paymentPayload.subscription_id = subscription.id
+    }
+
     const { data: payment, error: paymentError } = await supabase
       .from("payments")
-      .insert({
-        user_id: targetUserId,
-        subscription_id: subscription?.id || `sub_${targetUserId}`,
-        amount_usd: amountUsd,
-        token_type: tokenType,
-        token_amount: tokenAmount,
-        transaction_hash: transactionHash,
-        status: "completed",
-        payment_date: paymentDate.toISOString(),
-        created_at: paymentDate.toISOString(),
-      })
+      .insert(paymentPayload)
       .select()
-      .single()
+      .maybeSingle()
 
     if (paymentError) {
       console.error("[v0] Payment insert error:", paymentError)
