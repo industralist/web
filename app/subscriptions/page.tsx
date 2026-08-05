@@ -170,9 +170,15 @@ export default function SubscriptionsPage() {
           </div>
         </div>
 
-        <Button asChild className="w-full md:w-auto">
-          <a href="/pricing">Upgrade Plan</a>
-        </Button>
+        {subscription?.plan_type?.toLowerCase().includes("pro+") ? (
+          <Button disabled className="w-full md:w-auto bg-slate-800 text-slate-400 border border-slate-700 cursor-not-allowed">
+            Highest Tier Active
+          </Button>
+        ) : (
+          <Button asChild className="w-full md:w-auto">
+            <a href="/pricing">Upgrade Plan</a>
+          </Button>
+        )}
       </Card>
 
       {/* Plan Features */}

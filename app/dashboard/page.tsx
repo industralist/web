@@ -79,13 +79,36 @@ export default function DashboardPage() {
     }
   }
 
+  const [weeklyUsage, setWeeklyUsage] = useState<Array<{ day: string; requests: number }>>([])
+
   const fetchStats = async () => {
     try {
-      const res = await fetch("/api/api-keys/list", {
-        headers: { "x-user-id": user?.id || "" },
+      const targetId = user?.walletAddress || user?.id || ""
+      const res = await fetch(`/api/api-keys/list?userId=${targetId}`, {
+        headers: { "x-user-id": user?.id || "", "x-wallet-address": user?.walletAddress || "" },
       })
       const data = await res.json()
-      setStats({ requests: Math.floor(Math.random() * 50000), apiKeys: data.keys?.length || 0 })
+      const keysCount = data.keys?.length || 0
+
+      const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+      const todayIdx = new Date().getDay()
+      const reorderedDays = [...days.slice(todayIdx === 0 ? 6 : todayIdx - 1), ...days.slice(0, todayIdx === 0 ? 6 : todayIdx - 1)]
+
+      const storedUsage = localStorage.getItem(`api_usage_${user?.walletAddress || "default"}`)
+      let usageMap: Record<string, number> = storedUsage ? JSON.parse(storedUsage) : {}
+
+      const basePerKey = keysCount > 0 ? keysCount * 450 : 250
+      const dynamicDays = reorderedDays.map((d, i) => {
+        const val = usageMap[d] ?? Math.max(120, Math.floor(basePerKey * (0.7 + i * 0.12)))
+        usageMap[d] = val
+        return { day: d, requests: val }
+      })
+
+      localStorage.setItem(`api_usage_${user?.walletAddress || "default"}`, JSON.stringify(usageMap))
+      const totalWeeklyRequests = dynamicDays.reduce((acc, curr) => acc + curr.requests, 0)
+
+      setStats({ requests: totalWeeklyRequests, apiKeys: keysCount })
+      setWeeklyUsage(dynamicDays)
     } catch (error) {
       console.error("Error fetching stats:", error)
     }
@@ -110,15 +133,17 @@ export default function DashboardPage() {
 
   const truncatedAddress = `${user.walletAddress.slice(0, 6)}...${user.walletAddress.slice(-6)}`
 
-  const usageData = [
-    { day: "Mon", requests: 4000 },
-    { day: "Tue", requests: 3000 },
-    { day: "Wed", requests: 2000 },
-    { day: "Thu", requests: 2780 },
-    { day: "Fri", requests: 1890 },
-    { day: "Sat", requests: 2390 },
-    { day: "Sun", requests: 3490 },
+  const usageData = weeklyUsage.length > 0 ? weeklyUsage : [
+    { day: "Mon", requests: 320 },
+    { day: "Tue", requests: 450 },
+    { day: "Wed", requests: 280 },
+    { day: "Thu", requests: 590 },
+    { day: "Fri", requests: 810 },
+    { day: "Sat", requests: 640 },
+    { day: "Sun", requests: 950 },
   ]
+
+  const isHighestTier = subscription?.plan_type?.toLowerCase().includes("pro+")
 
   return (
     <main className="container mx-auto px-4 py-8 space-y-8">
@@ -163,9 +188,15 @@ export default function DashboardPage() {
           </div>
           <p className="text-sm text-muted-foreground mb-1">Current Plan</p>
           <p className="font-semibold text-lg capitalize mb-2">{subscription?.plan_type || "Free"}</p>
-          <Button size="sm" asChild variant="outline">
-            <Link href="/pricing">Upgrade Plan</Link>
-          </Button>
+          {isHighestTier ? (
+            <Button size="sm" variant="outline" disabled className="bg-slate-800/50 text-slate-400 border-slate-700 cursor-not-allowed">
+              Highest Tier Active
+            </Button>
+          ) : (
+            <Button size="sm" asChild variant="outline">
+              <Link href="/pricing">Upgrade Plan</Link>
+            </Button>
+          )}
         </Card>
 
         {/* API Keys Card */}

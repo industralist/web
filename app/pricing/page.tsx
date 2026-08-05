@@ -80,7 +80,45 @@ export default function PricingPage() {
   const [solPrices, setSolPrices] = useState<Record<string, number>>({})
   const [loadingPrices, setLoadingPrices] = useState(false)
   const [loadingPlans, setLoadingPlans] = useState<Set<string>>(new Set())
+  const [activePlan, setActivePlan] = useState<string>("free")
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | null>(null)
+
+  useEffect(() => {
+    const fetchActiveSub = async () => {
+      const targetId = user?.walletAddress || user?.id || ""
+      if (!targetId) return
+      try {
+        const res = await fetch(`/api/auth/subscription?userId=${targetId}`, {
+          headers: { "x-user-id": user?.id || "", "x-wallet-address": user?.walletAddress || "" },
+        })
+        const data = await res.json()
+        if (data.subscription?.plan_type) {
+          setActivePlan(data.subscription.plan_type.toLowerCase())
+        } else {
+          const stored = localStorage.getItem("user_subscription")
+          if (stored) {
+            const parsed = JSON.parse(stored)
+            if (parsed?.plan_type) setActivePlan(parsed.plan_type.toLowerCase())
+          }
+        }
+      } catch (err) {
+        const stored = localStorage.getItem("user_subscription")
+        if (stored) {
+          const parsed = JSON.parse(stored)
+          if (parsed?.plan_type) setActivePlan(parsed.plan_type.toLowerCase())
+        }
+      }
+    }
+    fetchActiveSub()
+  }, [user])
+
+  const isCurrentPlan = (planName: string) => {
+    const target = planName.toLowerCase()
+    if (activePlan.includes("pro+") && target.includes("pro+")) return true
+    if (activePlan.includes("pro") && !activePlan.includes("pro+") && target.includes("pro") && !target.includes("pro+")) return true
+    if (activePlan === "free" && target === "free") return true
+    return activePlan === target
+  }
 
   useEffect(() => {
     const loadSolPrices = async () => {
@@ -547,24 +585,33 @@ export default function PricingPage() {
                     ))}
                   </div>
 
-                  <Button
-                    onClick={() => handlePayment(plan)}
-                    disabled={isLoading || (currencyType === "sol" && loadingPrices)}
-                    className={plan.popular ? "bg-gradient-to-r from-primary to-orange-600 w-full" : "w-full"}
-                  >
-                    {isLoading ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Processing...
-                      </div>
-                    ) : plan.price === 0 ? (
-                      "Get Started"
-                    ) : connected ? (
-                      `Pay with ${plan.currencyDisplay}`
-                    ) : (
-                      "Connect Wallet"
-                    )}
-                  </Button>
+                  {isCurrentPlan(plan.name) ? (
+                    <Button
+                      disabled
+                      className="w-full bg-slate-800 text-slate-300 border border-slate-700 cursor-not-allowed font-semibold"
+                    >
+                      Current Plan
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => handlePayment(plan)}
+                      disabled={isLoading || (currencyType === "sol" && loadingPrices)}
+                      className={plan.popular ? "bg-gradient-to-r from-primary to-orange-600 w-full" : "w-full"}
+                    >
+                      {isLoading ? (
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Processing...
+                        </div>
+                      ) : plan.price === 0 ? (
+                        "Get Started"
+                      ) : connected ? (
+                        `Pay with ${plan.currencyDisplay}`
+                      ) : (
+                        "Connect Wallet"
+                      )}
+                    </Button>
+                  )}
                 </Card>
               </motion.div>
             )
