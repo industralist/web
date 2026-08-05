@@ -15,26 +15,27 @@ export async function GET(req: NextRequest) {
     try {
       const supabase = await getSupabaseServer()
 
-      const { data: subscription, error } = await supabase
+      let targetUserId = userId
+      try {
+        const { data: dbUser } = await supabase
+          .from("users")
+          .select("id")
+          .or(`id.eq.${userId},wallet_address.eq.${userId}`)
+          .maybeSingle()
+
+        if (dbUser) {
+          targetUserId = dbUser.id
+        }
+      } catch (uErr) {
+        console.error("User lookup warning in GET subscription:", uErr)
+      }
+
+      const { data: subscription } = await supabase
         .from("subscriptions")
         .select("*")
-        .eq("user_id", userId)
+        .or(`user_id.eq.${targetUserId},user_id.eq.${userId}`)
+        .order("updated_at", { ascending: false })
         .maybeSingle()
-
-      if (error && error.code === "PGRST116") {
-        // No subscription found, create free one
-        const { data: newSub } = await supabase
-          .from("subscriptions")
-          .insert({
-            user_id: userId,
-            plan_type: "free",
-            status: "active",
-          })
-          .select()
-          .single()
-
-        return NextResponse.json({ subscription: newSub })
-      }
 
       if (subscription) {
         return NextResponse.json({ subscription })

@@ -117,8 +117,17 @@ export default function PricingPage() {
     let activeUser = user
     if (!activeUser && publicKey) {
       try {
-        await loginWithWallet(publicKey.toBase58())
-        activeUser = { id: `usr_${publicKey.toBase58().slice(0, 10)}`, walletAddress: publicKey.toBase58() }
+        const verifyRes = await fetch("/api/auth/verify-wallet", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ walletAddress: publicKey.toBase58() }),
+        })
+        const verifyData = await verifyRes.json()
+        if (verifyData.userId) {
+          activeUser = { id: verifyData.userId, walletAddress: publicKey.toBase58() }
+        } else {
+          await loginWithWallet(publicKey.toBase58())
+        }
       } catch (loginErr) {
         console.error("Login failed before payment:", loginErr)
       }
