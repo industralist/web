@@ -3,44 +3,56 @@ import { type NextRequest, NextResponse } from "next/server"
 
 export async function GET(req: NextRequest) {
   try {
-    const userId =
+    const rawUserId =
       req.headers.get("x-user-id") ||
       req.headers.get("user-id") ||
-      req.nextUrl.searchParams.get("userId")
+      req.headers.get("x-wallet-address") ||
+      req.nextUrl.searchParams.get("userId") || ""
 
-    if (!userId) {
+    if (!rawUserId) {
       return NextResponse.json({ error: "User ID required" }, { status: 400 })
     }
+
+    const cleanWallet = rawUserId.replace(/^usr_/, "")
 
     try {
       const supabase = await getSupabaseServer()
 
-      let targetUserId = userId
-      try {
-        const { data: dbUser } = await supabase
-          .from("users")
-          .select("id")
-          .or(`id.eq.${userId},wallet_address.eq.${userId}`)
-          .maybeSingle()
+      const { data: dbUsers } = await supabase
+        .from("users")
+        .select("id, wallet_address")
 
-        if (dbUser) {
-          targetUserId = dbUser.id
+      let matchedUserId = rawUserId
+      if (dbUsers && dbUsers.length > 0) {
+        const found = dbUsers.find(
+          (u) =>
+            u.id === rawUserId ||
+            u.wallet_address === rawUserId ||
+            u.wallet_address === cleanWallet ||
+            (cleanWallet && u.wallet_address?.includes(cleanWallet)) ||
+            (cleanWallet && u.id?.includes(cleanWallet))
+        )
+        if (found) {
+          matchedUserId = found.id
         }
-      } catch (uErr) {
-        console.error("User lookup warning in GET subscription:", uErr)
       }
 
       const { data: subscriptions } = await supabase
         .from("subscriptions")
         .select("*")
-        .or(`user_id.eq.${targetUserId},user_id.eq.${userId}`)
         .order("updated_at", { ascending: false })
-        .limit(1)
 
-      const subscription = subscriptions?.[0]
-
-      if (subscription) {
-        return NextResponse.json({ subscription })
+      if (subscriptions && subscriptions.length > 0) {
+        const sub = subscriptions.find(
+          (s) =>
+            s.user_id === matchedUserId ||
+            s.user_id === rawUserId ||
+            s.user_id === cleanWallet ||
+            (cleanWallet && s.user_id?.includes(cleanWallet))
+        )
+        if (sub) {
+          return NextResponse.json({ subscription: sub })
+        }
       }
     } catch (dbError) {
       console.error("Database error in subscription GET:", dbError)
@@ -49,8 +61,8 @@ export async function GET(req: NextRequest) {
     // Default fallback free subscription if DB query fails or returns nothing
     return NextResponse.json({
       subscription: {
-        id: `sub_${userId}`,
-        user_id: userId,
+        id: `sub_${rawUserId}`,
+        user_id: rawUserId,
         plan_type: "free",
         status: "active",
         price_usd: 0,

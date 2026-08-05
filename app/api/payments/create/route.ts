@@ -20,22 +20,35 @@ export async function POST(req: NextRequest) {
     const supabase = await getSupabaseServer()
     console.log("[v0] Supabase server initialized")
 
-    let targetUserId = userId
-    try {
-      const { data: dbUser } = await supabase
-        .from("users")
-        .select("id")
-        .or(`id.eq.${userId},wallet_address.eq.${userId}`)
-        .maybeSingle()
+    const rawUserId = userId || ""
+    const cleanWallet = rawUserId.replace(/^usr_/, "")
 
-      if (dbUser) {
-        targetUserId = dbUser.id
-      } else {
+    let targetUserId = rawUserId
+    try {
+      const { data: dbUsers } = await supabase
+        .from("users")
+        .select("id, wallet_address")
+
+      if (dbUsers && dbUsers.length > 0) {
+        const found = dbUsers.find(
+          (u) =>
+            u.id === rawUserId ||
+            u.wallet_address === rawUserId ||
+            u.wallet_address === cleanWallet ||
+            (cleanWallet && u.wallet_address?.includes(cleanWallet)) ||
+            (cleanWallet && u.id?.includes(cleanWallet))
+        )
+        if (found) {
+          targetUserId = found.id
+        }
+      }
+
+      if (targetUserId === rawUserId) {
         const { data: newUser } = await supabase
           .from("users")
-          .insert({ wallet_address: userId })
+          .insert({ wallet_address: cleanWallet || rawUserId })
           .select("id")
-          .single()
+          .maybeSingle()
         if (newUser) {
           targetUserId = newUser.id
         }

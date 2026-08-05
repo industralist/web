@@ -50,8 +50,12 @@ export default function DashboardPage() {
 
   const fetchSubscription = async () => {
     try {
-      const res = await fetch("/api/auth/subscription", {
-        headers: { "x-user-id": user?.id || "" },
+      const targetId = user?.walletAddress || user?.id || ""
+      const res = await fetch(`/api/auth/subscription?userId=${targetId}`, {
+        headers: {
+          "x-user-id": user?.id || "",
+          "x-wallet-address": user?.walletAddress || "",
+        },
       })
       const data = await res.json()
       if (data.subscription && data.subscription.plan_type && data.subscription.plan_type !== "free") {
