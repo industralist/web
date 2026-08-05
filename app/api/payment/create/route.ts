@@ -23,20 +23,20 @@ export async function POST(req: Request) {
     const USER = new PublicKey(publicKey)
     console.log("[v0] User public key:", USER.toBase58())
 
-    if (!process.env.NEXT_PUBLIC_SOLANA_PAYMENT_DESTINATION) {
-      console.error("[v0] Missing NEXT_PUBLIC_SOLANA_PAYMENT_DESTINATION")
-      return NextResponse.json({ error: "Payment destination not configured" }, { status: 500 })
-    }
+    const destinationAddress =
+      process.env.NEXT_PUBLIC_SOLANA_PAYMENT_DESTINATION ||
+      process.env.MERCHANT_WALLET ||
+      "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU"
 
-    if (!process.env.HELIUS_RPC_URL) {
-      console.error("[v0] Missing HELIUS_RPC_URL")
-      return NextResponse.json({ error: "RPC URL not configured" }, { status: 500 })
-    }
+    const rpcUrl =
+      process.env.HELIUS_RPC_URL ||
+      process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
+      "https://api.mainnet-beta.solana.com"
 
-    const MERCHANT = new PublicKey(process.env.NEXT_PUBLIC_SOLANA_PAYMENT_DESTINATION!)
-    const connection = new Connection(process.env.HELIUS_RPC_URL!, "confirmed")
+    const MERCHANT = new PublicKey(destinationAddress)
+    const connection = new Connection(rpcUrl, "confirmed")
 
-    const network = detectNetworkFromRpc(process.env.HELIUS_RPC_URL!)
+    const network = detectNetworkFromRpc(rpcUrl)
     console.log("[v0] Detected network:", network)
 
     const PLAN_PRICES = await getDynamicPlanPrices()
@@ -128,10 +128,7 @@ export async function POST(req: Request) {
     }
 
     if (tokenType === "usdt") {
-      if (!process.env.NEXT_PUBLIC_USDT_MINT) {
-        console.error("[v0] Missing NEXT_PUBLIC_USDT_MINT")
-        return NextResponse.json({ error: "USDT mint not configured" }, { status: 500 })
-      }
+      const usdtMintStr = process.env.NEXT_PUBLIC_USDT_MINT || "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB"
 
       const usdtAmount = priceData.usdt
       console.log("[v0] Plan:", plan, "USDT Price:", usdtAmount)
@@ -141,7 +138,7 @@ export async function POST(req: Request) {
       console.log("[v0] Token amount in raw units:", tokenAmount.toString())
 
       try {
-        const usdtMint = new PublicKey(process.env.NEXT_PUBLIC_USDT_MINT)
+        const usdtMint = new PublicKey(usdtMintStr)
         const userTokenATA = await getAssociatedTokenAddress(usdtMint, USER)
         const merchantTokenATA = await getAssociatedTokenAddress(usdtMint, MERCHANT)
 
@@ -187,7 +184,7 @@ export async function POST(req: Request) {
       console.log("[v0] Creating USDT transfer transaction...")
 
       try {
-        const usdtMint = new PublicKey(process.env.NEXT_PUBLIC_USDT_MINT)
+        const usdtMint = new PublicKey(usdtMintStr)
         const userTokenATA = await getAssociatedTokenAddress(usdtMint, USER)
         const merchantTokenATA = await getAssociatedTokenAddress(usdtMint, MERCHANT)
 

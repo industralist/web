@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useWallet, useConnection } from "@solana/wallet-adapter-react"
+import { useWalletModal } from "@solana/wallet-adapter-react-ui"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Check, Loader2, CheckCircle, AlertCircle } from "lucide-react"
@@ -71,8 +72,9 @@ const PLANS: Plan[] = [
 
 export default function PricingPage() {
   const { connected, publicKey, sendTransaction } = useWallet()
+  const { setVisible } = useWalletModal()
   const { connection } = useConnection()
-  const { user } = useAuth()
+  const { user, loginWithWallet } = useAuth()
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>("monthly")
   const [currencyType, setCurrencyType] = useState<CurrencyType>("usdt")
   const [solPrices, setSolPrices] = useState<Record<string, number>>({})
@@ -107,15 +109,28 @@ export default function PricingPage() {
   }, [billingPeriod])
 
   const handlePayment = async (plan: Plan) => {
-    if (!connected || !publicKey || !user) {
-      toast.error("Please connect your wallet first")
+    if (!connected || !publicKey) {
+      setVisible(true)
       return
+    }
+
+    let activeUser = user
+    if (!activeUser && publicKey) {
+      try {
+        await loginWithWallet(publicKey.toBase58())
+        activeUser = { id: `usr_${publicKey.toBase58().slice(0, 10)}`, walletAddress: publicKey.toBase58() }
+      } catch (loginErr) {
+        console.error("Login failed before payment:", loginErr)
+      }
     }
 
     const usdPrice = billingPeriod === "monthly" ? plan.monthlyPrice : plan.yearlyPrice
 
     if (usdPrice === 0) {
-      toast.success("Free plan - no payment required")
+      toast.success("Free plan active - redirecting to dashboard...")
+      setTimeout(() => {
+        window.location.href = "/dashboard"
+      }, 500)
       return
     }
 
@@ -216,7 +231,7 @@ export default function PricingPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            userId: user.id,
+            userId: (activeUser || user)?.id || publicKey.toBase58(),
             planType: billingPeriod,
             tokenType: currencyType,
             tokenAmount: tokenAmount,
@@ -270,7 +285,7 @@ export default function PricingPage() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              userId: user.id,
+              userId: (activeUser || user)?.id || publicKey.toBase58(),
               planType: billingPeriod,
               tokenType: currencyType,
               tokenAmount: tokenAmount,
