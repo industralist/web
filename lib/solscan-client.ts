@@ -1,4 +1,5 @@
 import type { WalletData, Transaction, TokenAccount } from "./types"
+import { getSolPriceUsd } from "./sol-price"
 
 // This file is imported by use-wallet.ts which runs on client, so we remove process.env access here
 
@@ -111,12 +112,18 @@ async function getAccountBalance(address: string, rpcUrl: string): Promise<numbe
     })
 
     const data = await response.json()
-    console.log(`[v0] Balance response:`, data)
-    if (typeof data.result === "number") {
-      const solBalance = data.result / 1e9 // Convert lamports to SOL
-      console.log(`[v0] SOL Balance: ${solBalance} SOL (${data.result} lamports)`)
-      return solBalance
-    }
+    console.log(`[v0] Balance response for ${address}:`, data)
+    const rawResult = data.result
+    const lamports =
+      typeof rawResult === "number"
+        ? rawResult
+        : typeof rawResult?.value === "number"
+        ? rawResult.value
+        : 0
+
+    const solBalance = lamports / 1e9 // Convert lamports to SOL
+    console.log(`[v0] SOL Balance: ${solBalance} SOL (${lamports} lamports)`)
+    return solBalance
   } catch (error) {
     console.error("[v0] Failed to get balance:", error)
   }
@@ -287,16 +294,17 @@ export async function fetchWalletData(address: string, rpcUrl: string, heliusUrl
   try {
     console.log(`[v0] Fetching wallet data for: ${address}`)
 
-    const [balance, tokenAccounts, txData] = await Promise.all([
+    const [balance, tokenAccounts, txData, solPriceUsd] = await Promise.all([
       getAccountBalance(address, rpcUrl),
       getTokenAccounts(address, rpcUrl),
-      getTransactions(address, rpcUrl, 500), // increased limit from 100 to 500
+      getTransactions(address, rpcUrl, 500),
+      getSolPriceUsd().catch(() => 150),
     ])
 
     const validBalance = typeof balance === "number" && !isNaN(balance) ? balance : 0
     const validTokenCount = Array.isArray(tokenAccounts) ? tokenAccounts.length : 0
 
-    const totalValue = validBalance
+    const totalValue = validBalance * (typeof solPriceUsd === "number" && solPriceUsd > 0 ? solPriceUsd : 150)
 
     const transfers = txData.transactions.filter((t) => t.type === "send" || t.type === "receive")
     const defiActivities = txData.transactions.filter((t) => t.type === "swap")

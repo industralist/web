@@ -120,7 +120,9 @@ export function WalletDashboard({ walletAddress }: WalletDashboardProps) {
           style={{ backgroundColor: "rgb(20, 15, 12)" }}
         >
           <p className="text-gray-400 text-xs md:text-sm mb-2">Total SOL Balance</p>
-          <h2 className="text-4xl font-bold text-white mb-4">{wallet.balance.toFixed(2)} SOL</h2>
+          <h2 className="text-4xl font-bold text-white mb-4">
+            {wallet.balance > 0 && wallet.balance < 0.01 ? wallet.balance.toFixed(5) : wallet.balance.toFixed(4)} SOL
+          </h2>
           <div className={`flex items-center gap-2 ${isPositive ? "text-green-500" : "text-red-500"}`}>
             {isPositive ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
             <span className="font-semibold">

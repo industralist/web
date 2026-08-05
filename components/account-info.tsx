@@ -19,8 +19,7 @@ export function AccountInfo({ wallet, address }: AccountInfoProps) {
 
   const balance = wallet.portfolio?.solBalance ?? wallet.balance ?? 0
   const displayBalance = Math.max(0, Number.parseFloat(balance.toString()))
-  const solPrice = 200
-  const totalValue = displayBalance * solPrice
+  const totalValue = wallet.portfolio?.totalValue ?? displayBalance * 150
 
   return (
     <div className="rounded-xl border border-slate-700/50 overflow-hidden bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm">
@@ -48,11 +47,15 @@ export function AccountInfo({ wallet, address }: AccountInfoProps) {
           <div className="space-y-4">
             <div>
               <p className="text-slate-500 text-xs mb-1">Total Value</p>
-              <p className="text-2xl font-bold text-white">${totalValue.toFixed(2)}</p>
+              <p className="text-2xl font-bold text-white">
+                ${totalValue < 0.01 && totalValue > 0 ? totalValue.toFixed(4) : totalValue.toFixed(2)}
+              </p>
             </div>
             <div>
               <p className="text-slate-500 text-xs mb-1">SOL Balance</p>
-              <p className="text-xl font-bold text-white">{displayBalance.toFixed(4)} SOL</p>
+              <p className="text-xl font-bold text-white">
+                {displayBalance > 0 && displayBalance < 0.001 ? displayBalance.toFixed(6) : displayBalance.toFixed(5)} SOL
+              </p>
             </div>
             <div>
               <p className="text-slate-500 text-xs mb-1">Token Accounts</p>
