@@ -5,13 +5,17 @@ export async function POST(req: NextRequest) {
   try {
     console.log("[v0] Recording payment in database")
 
-    const { userId, planType, tokenType, tokenAmount, amountUsd, transactionHash } = await req.json()
-    console.log("[v0] Payment data:", { userId, planType, tokenType, tokenAmount, amountUsd, transactionHash })
+    const { userId, planName, planType, billingPeriod, tokenType, tokenAmount, amountUsd, transactionHash } = await req.json()
+    console.log("[v0] Payment data:", { userId, planName, planType, billingPeriod, tokenType, tokenAmount, amountUsd, transactionHash })
 
     if (!userId || !transactionHash) {
       console.error("[v0] Missing required payment fields")
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
+
+    const finalPlanType = (planName || planType || "pro").toLowerCase()
+    const cycle = billingPeriod || (planType === "yearly" ? "yearly" : "monthly")
+    const renewalPeriodMs = cycle === "yearly" ? 365 * 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000
 
     const supabase = await getSupabaseServer()
     console.log("[v0] Supabase server initialized")
@@ -33,8 +37,6 @@ export async function POST(req: NextRequest) {
     }
 
     console.log("[v0] Creating/updating subscription for user:", userId)
-
-    const renewalPeriodMs = planType === "yearly" ? 365 * 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000
 
     const { data: existingSub, error: queryError } = await supabase
       .from("subscriptions")
@@ -58,8 +60,8 @@ export async function POST(req: NextRequest) {
       const { data: updated, error: updateError } = await supabase
         .from("subscriptions")
         .update({
-          plan_type: planType === "yearly" ? "yearly" : "monthly",
-          billing_cycle: planType === "yearly" ? "yearly" : "monthly",
+          plan_type: finalPlanType,
+          billing_cycle: cycle,
           status: "active",
           price_usd: amountUsd,
           next_billing_date: newExpiration.toISOString(),
@@ -83,8 +85,8 @@ export async function POST(req: NextRequest) {
         .from("subscriptions")
         .insert({
           user_id: userId,
-          plan_type: planType === "yearly" ? "yearly" : "monthly",
-          billing_cycle: planType === "yearly" ? "yearly" : "monthly",
+          plan_type: finalPlanType,
+          billing_cycle: cycle,
           status: "active",
           price_usd: amountUsd,
           next_billing_date: newExpiration.toISOString(),

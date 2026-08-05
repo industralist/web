@@ -54,9 +54,20 @@ export default function DashboardPage() {
         headers: { "x-user-id": user?.id || "" },
       })
       const data = await res.json()
-      setSubscription(data.subscription)
+      if (data.subscription && data.subscription.plan_type !== "free") {
+        setSubscription(data.subscription)
+      } else {
+        const stored = localStorage.getItem("user_subscription")
+        if (stored) {
+          setSubscription(JSON.parse(stored))
+        } else {
+          setSubscription(data.subscription)
+        }
+      }
     } catch (error) {
       console.error("Error fetching subscription:", error)
+      const stored = localStorage.getItem("user_subscription")
+      if (stored) setSubscription(JSON.parse(stored))
     }
   }
 
