@@ -30,12 +30,14 @@ export async function GET(req: NextRequest) {
         console.error("User lookup warning in GET subscription:", uErr)
       }
 
-      const { data: subscription } = await supabase
+      const { data: subscriptions } = await supabase
         .from("subscriptions")
         .select("*")
         .or(`user_id.eq.${targetUserId},user_id.eq.${userId}`)
         .order("updated_at", { ascending: false })
-        .maybeSingle()
+        .limit(1)
+
+      const subscription = subscriptions?.[0]
 
       if (subscription) {
         return NextResponse.json({ subscription })

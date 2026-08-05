@@ -65,15 +65,19 @@ export default function SubscriptionsPage() {
         headers: { "x-user-id": user?.id || "" },
       })
       const data = await res.json()
-      if (data.subscription && data.subscription.plan_type !== "free") {
+      if (data.subscription && data.subscription.plan_type && data.subscription.plan_type !== "free") {
         setSubscription(data.subscription)
+        localStorage.setItem("user_subscription", JSON.stringify(data.subscription))
       } else {
         const stored = localStorage.getItem("user_subscription")
         if (stored) {
-          setSubscription(JSON.parse(stored))
-        } else {
-          setSubscription(data.subscription)
+          const parsed = JSON.parse(stored)
+          if (parsed && parsed.plan_type && parsed.plan_type !== "free") {
+            setSubscription(parsed)
+            return
+          }
         }
+        setSubscription(data.subscription)
       }
     } catch (error) {
       console.error("Error fetching subscription:", error)

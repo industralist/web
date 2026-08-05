@@ -63,11 +63,14 @@ export async function POST(req: NextRequest) {
 
     console.log("[v0] Creating/updating subscription for user:", targetUserId)
 
-    const { data: existingSub } = await supabase
+    const { data: existingSubs } = await supabase
       .from("subscriptions")
       .select("id, next_billing_date, status")
       .or(`user_id.eq.${targetUserId},user_id.eq.${userId}`)
-      .maybeSingle()
+      .order("updated_at", { ascending: false })
+      .limit(1)
+
+    const existingSub = existingSubs?.[0]
 
     let subscription
     if (existingSub) {
